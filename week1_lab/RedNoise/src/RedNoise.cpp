@@ -7,6 +7,8 @@
 // for line drawing:
 #include <Colour.h>
 #include <CanvasPoint.h>
+//for task 5
+#include <TextureMap.h>
 // width and height
 #define WIDTH 320
 #define HEIGHT 240
@@ -145,11 +147,119 @@ void drawLine(DrawingWindow &window, const CanvasPoint &start, const CanvasPoint
 //}
 
 // random canvas triangle:
-void drawTriangle(DrawingWindow &window,CanvasTriangle triangle, Colour colour) {
+void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour) {
     drawLine(window, triangle.v0(), triangle.v1(), colour);
     drawLine(window, triangle.v1(), triangle.v2(), colour);
     drawLine(window, triangle.v0(), triangle.v2(), colour);
 }
+
+// filled triangle:
+void drawFilledTriangle(DrawingWindow &window, CanvasTriangle &triangle, const Colour &colour) {
+    // Sort the vertices by y-coordinate
+    std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
+    std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
+        return a.y < b.y;
+    });
+
+    // slopes of the edges
+    float slope1 = (vertices[1].x - vertices[0].x) / (vertices[1].y - vertices[0].y);
+    float slope2 = (vertices[2].x - vertices[0].x) / (vertices[2].y - vertices[0].y);
+    float slope3 = (vertices[2].x - vertices[1].x) / (vertices[2].y - vertices[1].y);
+
+    // Iterate over the y-values of the triangle
+    for (int y = (int)vertices[0].y; y < (int)vertices[1].y; y++) {
+        int x1 = vertices[0].x + slope1 * (y - vertices[0].y);
+        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
+        for (int x = x1; x < x2; x++) {
+            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
+        }
+    }
+
+    for (int y = (int)vertices[1].y; y < (int)vertices[2].y; y++) {
+        int x1 = vertices[1].x + slope3 * (y - vertices[1].y);
+        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
+        for (int x = x1; x < x2; x++) {
+            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
+        }
+    }
+    drawTriangle(window, triangle, Colour(255, 255, 255)); // white outline
+}
+
+// task 5
+void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &texture) {
+    // 1. Sort the triangle vertices by their y-values.
+    std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
+    std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
+        return a.y < b.y;
+    });
+
+    CanvasPoint top = vertices[0];
+    CanvasPoint mid = vertices[1];
+    CanvasPoint bot = vertices[2];
+    bool flatBottom = false;
+
+    // 2. Split triangle if necessary (just like before).
+    if (top.y != mid.y && mid.y != bot.y) {
+        float alpha = (mid.y - top.y) / (bot.y - top.y);
+        float newX = top.x + alpha * (bot.x - top.x);
+
+        CanvasPoint newVert(newX, mid.y);
+        newVert.texturePoint.x = top.texturePoint.x + alpha * (bot.texturePoint.x - top.texturePoint.x);
+        newVert.texturePoint.y = top.texturePoint.y + alpha * (bot.texturePoint.y - top.texturePoint.y);
+
+        drawTexturedTriangle(window, CanvasTriangle(top, mid, newVert), texture);
+        drawTexturedTriangle(window, CanvasTriangle(bot, mid, newVert), texture);
+        return;
+
+    }else if (top.y == mid.y) {
+        flatBottom = true;
+    }
+
+
+
+//    // 3. Determine if we're drawing a flat-bottom or flat-top triangle.
+//    bool flatBottom = top.y == mid.y;
+//
+//    if (flatBottom) {
+//        std::swap(mid, bot);
+//    }
+
+    for (int y = (int)top.y; y <= (int)bot.y; y++) {
+
+//        // Interpolating values between top and bottom points.
+//        float alphaFull = (y - top.y) / (bot.y - top.y);
+//
+//        // Interpolating values between top and mid points.
+//        float alphaPart = (y - top.y) / (mid.y - top.y);
+        float alphaFull = (bot.y == top.y) ? 0 : (y - top.y) / (bot.y - top.y);
+        float alphaPart = (mid.y == top.y) ? 0 : (y - top.y) / (mid.y - top.y);
+
+        int xFull = top.x + alphaFull * (bot.x - top.x);
+        int xPart = flatBottom ? mid.x + alphaPart * (bot.x - mid.x) : top.x + alphaPart * (mid.x - top.x);
+        printf("y: %d, xFull: %d, xPart: %d\n", y, xFull, xPart);
+
+        float texXFull = top.texturePoint.x + alphaFull * (bot.texturePoint.x - top.texturePoint.x);
+        float texXPart = flatBottom ? mid.texturePoint.x + alphaPart * (bot.texturePoint.x - mid.texturePoint.x) : top.texturePoint.x + alphaPart * (mid.texturePoint.x - top.texturePoint.x);
+
+        if (xFull > xPart) {
+            std::swap(xFull, xPart);
+            std::swap(texXFull, texXPart);
+        }
+
+        for (int x = xFull; x <= xPart; x++) {
+            float alphaSpan = (x - xFull) / (float)(xPart - xFull);
+            float texX = texXFull + alphaSpan * (texXPart - texXFull);
+            float texY = top.texturePoint.y + alphaFull * (bot.texturePoint.y - top.texturePoint.y);
+
+            int texturePixelIndex = ((int)texY * texture.width) + (int)texX;
+            uint32_t texel = texture.pixels[texturePixelIndex];
+
+            // Draw the texel onto the canvas (replace with your actual drawing method).
+            window.setPixelColour(x, y, texel);
+        }
+    }
+}
+
 
 CanvasTriangle generateRandomTriangle(int canvasWidth, int canvasHeight) {
     CanvasPoint v0(rand() % canvasWidth, rand() % canvasHeight);
@@ -178,6 +288,12 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
             drawTriangle(window, randomTriangle, randomColour);
             std::cout << "DRAW TRIANGLE" << std::endl;
         }
+        else if (event.key.keysym.sym == SDLK_f){
+            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
+            Colour randomColour = generateRandomColour();
+            drawFilledTriangle(window, randomTriangle, randomColour);
+            std::cout << "DRAW FILLED TRIANGLE" << std::endl;
+        }
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
@@ -189,6 +305,9 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
+
+    // path to the ppm file:
+    TextureMap texture("texture.ppm");
 
     // test function for interpolateSingleFloats
     std::vector<float> result;
@@ -208,14 +327,58 @@ int main(int argc, char *argv[]) {
 //    Colour randomColour = generateRandomColour();
 //    drawTriangle(window, randomTriangle, randomColour);
 
+//    while (true) {
+//        // We MUST poll for events - otherwise the window will freeze !
+//        if (window.pollForInputEvents(event)) handleEvent(event, window);
+////        draw(window);
+//
+//// original/test
+////        CanvasPoint v0(160, 10);
+////        v0.texturePoint = TexturePoint(0, 0);  // Top-left corner of the texture
+////        CanvasPoint v1(300, 230);
+////        v1.texturePoint = TexturePoint(texture.width, 0);  // Top-right corner of the texture
+////        CanvasPoint v2(10, 150);
+////        v2.texturePoint = TexturePoint(texture.width / 2, texture.height);  // Bottom-center of the texture
+//
+//        CanvasPoint v0(160, 10);
+//        v0.texturePoint = TexturePoint(195, 5);
+//        CanvasPoint v1(300, 230);
+//        v1.texturePoint = TexturePoint(395, 380);
+//        CanvasPoint v2(10, 150);
+//        v2.texturePoint = TexturePoint(65, 330);
+//
+//        CanvasTriangle triangle(v0, v1, v2);
+//        drawTexturedTriangle(window, triangle, texture);
+//
+//        // Need to render the frame at the end, or nothing actually gets shown on the screen !
+//        window.renderFrame();
+//    }
+    bool hasRendered = false;
+
     while (true) {
         // We MUST poll for events - otherwise the window will freeze !
-        if (window.pollForInputEvents(event)) handleEvent(event, window);
-//        draw(window);
+        if (window.pollForInputEvents(event)) {
+            handleEvent(event, window);
+        }
 
+        // Only render once.
+        if (!hasRendered) {
+            CanvasPoint v0(160, 10);
+            v0.texturePoint = TexturePoint(195, 5);
+            CanvasPoint v1(300, 230);
+            v1.texturePoint = TexturePoint(395, 380);
+            CanvasPoint v2(10, 150);
+            v2.texturePoint = TexturePoint(65, 330);
 
-        // Need to render the frame at the end, or nothing actually gets shown on the screen !
-        window.renderFrame();
+            CanvasTriangle triangle(v0, v1, v2);
+            drawTexturedTriangle(window, triangle, texture);
+
+            // Need to render the frame at the end, or nothing actually gets shown on the screen !
+            window.renderFrame();
+
+            hasRendered = true;
+        }
     }
+
 }
 
