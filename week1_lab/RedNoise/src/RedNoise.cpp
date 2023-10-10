@@ -188,6 +188,12 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle &triangle, const C
 // task 5
 void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &texture) {
     // 1. Sort the triangle vertices by their y-values.
+    printf("Triangle vertices:\n");
+    printf("V0: (%f, %f), V1: (%f, %f), V2: (%f, %f)\n",
+           triangle.v0().x, triangle.v0().y,
+           triangle.v1().x, triangle.v1().y,
+           triangle.v2().x, triangle.v2().y);
+
     std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
     std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
         return a.y < b.y;
@@ -231,8 +237,20 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
 //
 //        // Interpolating values between top and mid points.
 //        float alphaPart = (y - top.y) / (mid.y - top.y);
+//        float alphaFull = (bot.y == top.y) ? 0 : (y - top.y) / (bot.y - top.y);
+//        float alphaPart = (mid.y == top.y) ? 0 : (y - top.y) / (mid.y - top.y);
+
         float alphaFull = (bot.y == top.y) ? 0 : (y - top.y) / (bot.y - top.y);
-        float alphaPart = (mid.y == top.y) ? 0 : (y - top.y) / (mid.y - top.y);
+        float alphaPart;
+        if (y <= mid.y) {
+            // This is the top triangle
+            alphaPart = (mid.y == top.y) ? 0 : (y - top.y) / (mid.y - top.y);
+        } else {
+            // This is the bottom triangle
+            alphaPart = (mid.y == bot.y) ? 0 : (y - mid.y) / (bot.y - mid.y);
+        }
+
+
 
         int xFull = top.x + alphaFull * (bot.x - top.x);
         int xPart = flatBottom ? mid.x + alphaPart * (bot.x - mid.x) : top.x + alphaPart * (mid.x - top.x);
@@ -241,21 +259,28 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
         float texXFull = top.texturePoint.x + alphaFull * (bot.texturePoint.x - top.texturePoint.x);
         float texXPart = flatBottom ? mid.texturePoint.x + alphaPart * (bot.texturePoint.x - mid.texturePoint.x) : top.texturePoint.x + alphaPart * (mid.texturePoint.x - top.texturePoint.x);
 
+        float texYFull = top.texturePoint.y + alphaFull * (bot.texturePoint.y - top.texturePoint.y);
+        float texYPart = flatBottom ? mid.texturePoint.y + alphaPart * (bot.texturePoint.y - mid.texturePoint.y) : top.texturePoint.y + alphaPart * (mid.texturePoint.y - top.texturePoint.y);
+
         if (xFull > xPart) {
             std::swap(xFull, xPart);
             std::swap(texXFull, texXPart);
+            std::swap(texYFull, texYPart);
+
         }
 
         for (int x = xFull; x <= xPart; x++) {
             float alphaSpan = (x - xFull) / (float)(xPart - xFull);
             float texX = texXFull + alphaSpan * (texXPart - texXFull);
-            float texY = top.texturePoint.y + alphaFull * (bot.texturePoint.y - top.texturePoint.y);
+            float texY = texYFull + alphaSpan * (texYPart - texYFull);
 
             int texturePixelIndex = ((int)texY * texture.width) + (int)texX;
-            uint32_t texel = texture.pixels[texturePixelIndex];
+            if (texturePixelIndex >= 0 && texturePixelIndex < texture.width * texture.height) {
+                uint32_t texel = texture.pixels[texturePixelIndex];
 
-            // Draw the texel onto the canvas (replace with your actual drawing method).
-            window.setPixelColour(x, y, texel);
+                // Draw the texel onto the canvas (replace with your actual drawing method).
+                window.setPixelColour(x, y, texel);
+            }
         }
     }
 }
