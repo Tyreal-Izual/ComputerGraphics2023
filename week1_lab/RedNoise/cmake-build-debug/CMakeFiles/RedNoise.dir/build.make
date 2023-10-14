@@ -236,7 +236,7 @@ RedNoise: CMakeFiles/RedNoise.dir/libs/sdw/TexturePoint.cpp.o
 RedNoise: CMakeFiles/RedNoise.dir/libs/sdw/Utils.cpp.o
 RedNoise: CMakeFiles/RedNoise.dir/src/RedNoise.cpp.o
 RedNoise: CMakeFiles/RedNoise.dir/build.make
-RedNoise: /opt/homebrew/Cellar/sdl2/2.28.3/lib/libSDL2.dylib
+RedNoise: /opt/homebrew/Cellar/sdl2/2.28.4/lib/libSDL2.dylib
 RedNoise: CMakeFiles/RedNoise.dir/link.txt
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_11) "Linking CXX executable RedNoise"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/RedNoise.dir/link.txt --verbose=$(VERBOSE)

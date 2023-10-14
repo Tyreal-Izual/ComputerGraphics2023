@@ -4,16 +4,11 @@
 #include <fstream>
 #include <vector>
 #include <glm/glm.hpp>
-// for line drawing:
 #include <Colour.h>
 #include <CanvasPoint.h>
-//for task 5
 #include <TextureMap.h>
-// width and height
 #define WIDTH 320
 #define HEIGHT 240
-//#define WIDTH 1920
-//#define HEIGHT 1080
 
 
 // RedNoise
@@ -187,7 +182,7 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle &triangle, const C
 
 // task 5
 void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &texture) {
-    // 1. Sort the triangle vertices by their y-values.
+    //  Sort the triangle vertices by their y-values.
     printf("Triangle vertices:\n");
     printf("V0: (%f, %f), V1: (%f, %f), V2: (%f, %f)\n",
            triangle.v0().x, triangle.v0().y,
@@ -204,7 +199,7 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
     CanvasPoint bot = vertices[2];
     bool flatBottom = false;
 
-    // 2. Split triangle if necessary (just like before).
+    // Split triangle if necessary (just like before).
     if (top.y != mid.y && mid.y != bot.y) {
         float alpha = (mid.y - top.y) / (bot.y - top.y);
         float newX = top.x + alpha * (bot.x - top.x);
@@ -218,28 +213,12 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
         return;
 
     }else if (top.y == mid.y) {
+        // Determine if we're drawing a flat-bottom or flat-top triangle.
         flatBottom = true;
     }
 
 
-
-//    // 3. Determine if we're drawing a flat-bottom or flat-top triangle.
-//    bool flatBottom = top.y == mid.y;
-//
-//    if (flatBottom) {
-//        std::swap(mid, bot);
-//    }
-
     for (int y = (int)top.y; y <= (int)bot.y; y++) {
-
-//        // Interpolating values between top and bottom points.
-//        float alphaFull = (y - top.y) / (bot.y - top.y);
-//
-//        // Interpolating values between top and mid points.
-//        float alphaPart = (y - top.y) / (mid.y - top.y);
-//        float alphaFull = (bot.y == top.y) ? 0 : (y - top.y) / (bot.y - top.y);
-//        float alphaPart = (mid.y == top.y) ? 0 : (y - top.y) / (mid.y - top.y);
-
         float alphaFull = (bot.y == top.y) ? 0 : (y - top.y) / (bot.y - top.y);
         float alphaPart;
         if (y <= mid.y) {
@@ -249,7 +228,6 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
             // This is the bottom triangle
             alphaPart = (mid.y == bot.y) ? 0 : (y - mid.y) / (bot.y - mid.y);
         }
-
 
 
         int xFull = top.x + alphaFull * (bot.x - top.x);
@@ -326,7 +304,6 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 }
 
 
-
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
@@ -347,7 +324,7 @@ int main(int argc, char *argv[]) {
     for (size_t i = 0; i < results.size(); i++) {
         std::cout << "(" << results[i].x << ", " << results[i].y << ", " << results[i].z << ")" << std::endl;
     }
-
+//// random triangle
 //    CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
 //    Colour randomColour = generateRandomColour();
 //    drawTriangle(window, randomTriangle, randomColour);
@@ -356,14 +333,6 @@ int main(int argc, char *argv[]) {
 //        // We MUST poll for events - otherwise the window will freeze !
 //        if (window.pollForInputEvents(event)) handleEvent(event, window);
 ////        draw(window);
-//
-//// original/test
-////        CanvasPoint v0(160, 10);
-////        v0.texturePoint = TexturePoint(0, 0);  // Top-left corner of the texture
-////        CanvasPoint v1(300, 230);
-////        v1.texturePoint = TexturePoint(texture.width, 0);  // Top-right corner of the texture
-////        CanvasPoint v2(10, 150);
-////        v2.texturePoint = TexturePoint(texture.width / 2, texture.height);  // Bottom-center of the texture
 //
 //        CanvasPoint v0(160, 10);
 //        v0.texturePoint = TexturePoint(195, 5);
