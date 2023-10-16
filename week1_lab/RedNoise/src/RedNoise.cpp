@@ -2,11 +2,14 @@
 #include <DrawingWindow.h>
 #include <Utils.h>
 #include <fstream>
+#include <sstream>
 #include <vector>
 #include <glm/glm.hpp>
 #include <Colour.h>
 #include <CanvasPoint.h>
 #include <TextureMap.h>
+#include <ModelTriangle.h>
+#include <unordered_map>
 #define WIDTH 320
 #define HEIGHT 240
 
@@ -263,7 +266,6 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
     }
 }
 
-
 CanvasTriangle generateRandomTriangle(int canvasWidth, int canvasHeight) {
     CanvasPoint v0(rand() % canvasWidth, rand() % canvasHeight);
     CanvasPoint v1(rand() % canvasWidth, rand() % canvasHeight);
@@ -277,6 +279,7 @@ Colour generateRandomColour() {
     uint8_t b = rand() % 256;
     return Colour(r, g, b);
 }
+
 
 // keypress
 void handleEvent(SDL_Event event, DrawingWindow &window) {
@@ -304,75 +307,308 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
 }
 
 
+//// week4 Task1
+//std::vector<ModelTriangle> loadOBJ(const std::string& filename, float scalingFactor) {
+//    std::ifstream infile(filename);
+//    if (!infile.is_open()) {
+//        std::cerr << "Failed to open OBJ file: " << filename << std::endl;
+//        return {};
+//    }
+//
+//    std::string line;
+//    std::vector<glm::vec3> vertices;
+//    std::vector<ModelTriangle> triangles;
+//
+//    while (std::getline(infile, line)) {
+//        std::vector<std::string> tokens = split(line, ' ');
+//        if (tokens.empty()) continue;
+//
+//        if (tokens[0] == "v") {
+//            // Parse vertex
+//            glm::vec3 vertex(std::stof(tokens[1]) * scalingFactor,
+//                             std::stof(tokens[2]) * scalingFactor,
+//                             std::stof(tokens[3]) * scalingFactor);
+//            vertices.push_back(vertex);
+//        } else if (tokens[0] == "f") {
+//            // Parse face
+//            int v1 = std::stoi(tokens[1]) - 1;  // Convert 1-based to 0-based index
+//            int v2 = std::stoi(tokens[2]) - 1;
+//            int v3 = std::stoi(tokens[3]) - 1;
+//            ModelTriangle triangle(vertices[v1], vertices[v2], vertices[v3], Colour(255,255,255)); // Default colour
+//            triangles.push_back(triangle);
+//        }
+//    }
+//
+//    infile.close();
+//    return triangles;
+//}
+
+
+std::unordered_map<std::string, Colour> loadMaterials(const std::string& filename) {
+    std::unordered_map<std::string, Colour> palette;
+    std::ifstream mtlFile(filename);
+
+    if (!mtlFile.is_open()) {
+        std::cerr << "Failed to open materials file: " << filename << std::endl;
+        return palette;
+    }
+
+    std::string line;
+    std::string currentMaterialName;
+    while (getline(mtlFile, line)) {
+        std::stringstream ss(line);
+        std::string keyword;
+        ss >> keyword;
+
+        if (keyword == "newmtl") {
+            ss >> currentMaterialName;
+        } else if (keyword == "Kd") {
+            int r, g, b;
+            ss >> r >> g >> b;
+            r *= 255; // Convert to 8-bit color
+            g *= 255;
+            b *= 255;
+            palette[currentMaterialName] = Colour(currentMaterialName, r, g, b);
+        }
+    }
+
+    mtlFile.close();
+    return palette;
+}
+
+
+// Assuming utils.cpp provides the split function
+std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, const std::string& mtlFilename, float scale) {
+    std::unordered_map<std::string, Colour> palette = loadMaterials(mtlFilename);
+    std::vector<ModelTriangle> triangles;
+    std::ifstream objFile(objFilename);
+
+    if (!objFile.is_open()) {
+        std::cerr << "Failed to open geometry file: " << objFilename << std::endl;
+        return triangles;
+    }
+
+    std::vector<glm::vec3> vertices;
+    Colour currentColour; // This will hold the current colour being used by the triangles
+
+    std::string line;
+    while (getline(objFile, line)) {
+        std::vector<std::string> tokens = split(line, ' ');
+        if (tokens.empty()) continue;
+
+        if (tokens[0] == "v") {
+            glm::vec3 vertex(stof(tokens[1])* scale , stof(tokens[2])* scale , stof(tokens[3])* scale );
+            vertices.push_back(vertex);
+            // Print out the first 5 vertices for checking
+            if (vertices.size() <= 100) {
+                std::cout << std::setprecision(10) << "Loaded vertex: (" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")" << std::endl;
+                std::cout << std::setprecision(10) << "Loaded vertex: (" << (stof(tokens[1])* scale , stof(tokens[2])* scale , stof(tokens[3])* scale ) << ")" << std::endl;
+                std::cout << std::setprecision(10) << "vertex: (" << vertex.x <<"," << vertex.y << ","<< vertex.z << ")" << std::endl;
+
+            }
+        } else if (tokens[0] == "usemtl") {
+            currentColour = palette[tokens[1]];
+        } else if (tokens[0] == "f") {
+            ModelTriangle triangle(vertices[stoi(tokens[1]) - 1], vertices[stoi(tokens[2]) - 1], vertices[stoi(tokens[3]) - 1], currentColour);
+            triangles.push_back(triangle);
+            if (triangles.size() <= 100) {
+                std::cout << "Loaded triangle with vertices: \n";
+                for (const auto& vertex : triangle.vertices) {
+                    std::cout << "\t(" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")\n";
+                }}
+        }
+    }
+
+    objFile.close();
+    return triangles;
+}
+
+const float IMAGE_PLANE_SCALING = 240.0f;  // The scaling factor
+
+CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const glm::vec3 &vertexPosition, float focalLength) {
+    float xi = vertexPosition.x - cameraPosition.x;
+    float yi = vertexPosition.y - cameraPosition.y;
+    float zi = cameraPosition.z - vertexPosition.z ;
+//    glm::vec3 direction = glm::normalize(vertexPosition - cameraPosition);
+//
+//    float xi = direction.x;
+//    float yi = direction.y;
+//    float zi = direction.z;
+
+    float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2 ;
+    float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2 ;
+    std::cout << "ui,vi point: (" << ui << ", " << vi << ")" << std::endl;
+
+    return CanvasPoint(ui, vi);
+}
+
+
+//void draw(DrawingWindow &window) {
+//    window.clearPixels();
+//
+//    glm::vec3 cameraPosition(0.0, 0.0, 4.0);
+//    float focalLength = 2.0;
+//
+//    std::vector<ModelTriangle> triangles = loadOBJWithMaterials("/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj", "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl", 0.35);
+//    std::cout << "Number of triangles: " << triangles.size() << std::endl;
+//    for (const ModelTriangle &triangle : triangles) {
+//        for (int i = 0; i < 3; i++) {
+//            CanvasPoint projectedPoint = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[i], focalLength);
+//            std::cout << "Projected point: (" << projectedPoint.x << ", " << projectedPoint.y << ")" << std::endl;
+//
+//            // Scaling
+//            // Scale around the center
+////            projectedPoint.x = (projectedPoint.x - WIDTH / 2) * 240 + WIDTH / 2;
+////            projectedPoint.y = (projectedPoint.y - HEIGHT / 2) * 240 + HEIGHT / 2;
+//
+//
+//            // Flip upside-down if needed
+//            projectedPoint.y = HEIGHT - projectedPoint.y;
+//
+////            projectedPoint.x /= IMAGE_PLANE_SCALING;
+////            projectedPoint.y /= IMAGE_PLANE_SCALING;
+//
+//            // Draw the point on the window
+//            if (projectedPoint.x >= 0 && projectedPoint.x < WIDTH && projectedPoint.y >= 0 && projectedPoint.y < HEIGHT) {
+//                window.setPixelColour(projectedPoint.x, projectedPoint.y, 0xFFFFFF);
+//            } else{
+//                std::cout << "Point out of bounds: (" << projectedPoint.x << ", " << projectedPoint.y << ")" << std::endl;
+//
+//            }
+//        }
+//    }
+//}
+
+void draw(DrawingWindow &window) {
+    window.clearPixels();
+
+    glm::vec3 cameraPosition(0, 0, 4.0);
+    float focalLength = 1.5;
+
+    std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials("/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj", "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl", 0.35);
+    std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
+
+    Colour white(255, 255, 255); // For wireframe
+
+    for (const ModelTriangle &modelTriangle : modelTriangles) {
+        CanvasPoint v0 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[0], focalLength);
+        CanvasPoint v1 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[1], focalLength);
+        CanvasPoint v2 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[2], focalLength);
+
+        // Scale, flip, etc. if needed (similar to what you did for individual vertices)
+        // Here's the flip as an example:
+        v0.y = HEIGHT - v0.y;
+        v1.y = HEIGHT - v1.y;
+        v2.y = HEIGHT - v2.y;
+
+        CanvasTriangle canvasTriangle(v0, v1, v2);
+        drawTriangle(window, canvasTriangle, white); // Draw the wireframe
+    }
+}
+
+
+//int main(int argc, char *argv[]) {
+//    DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
+//    SDL_Event event;
+//    while (true) {
+//        // We MUST poll for events - otherwise the window will freeze !
+//        if (window.pollForInputEvents(event)) handleEvent(event, window);
+//        draw(window);
+//        // Need to render the frame at the end, or nothing actually gets shown on the screen !
+//        window.renderFrame();
+//    }
+//}
+
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
 
-    // path to the ppm file:
-    TextureMap texture("texture.ppm");
-
-    // test function for interpolateSingleFloats
-    std::vector<float> result;
-    result = interpolateSingleFloats(2.2, 8.5, 7);
-    for(size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
-    std::cout << std::endl;
-
-    // test function for interpolateThreeElementValues
-    glm::vec3 from(1.0, 4.0, 9.2);
-    glm::vec3 to(4.0, 1.0, 9.8);
-    std::vector<glm::vec3> results = interpolateThreeElementValues(from, to, 4);
-    for (size_t i = 0; i < results.size(); i++) {
-        std::cout << "(" << results[i].x << ", " << results[i].y << ", " << results[i].z << ")" << std::endl;
-    }
-//// random triangle
-//    CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
-//    Colour randomColour = generateRandomColour();
-//    drawTriangle(window, randomTriangle, randomColour);
-
-//    while (true) {
-//        // We MUST poll for events - otherwise the window will freeze !
-//        if (window.pollForInputEvents(event)) handleEvent(event, window);
-////        draw(window);
-//
-//        CanvasPoint v0(160, 10);
-//        v0.texturePoint = TexturePoint(195, 5);
-//        CanvasPoint v1(300, 230);
-//        v1.texturePoint = TexturePoint(395, 380);
-//        CanvasPoint v2(10, 150);
-//        v2.texturePoint = TexturePoint(65, 330);
-//
-//        CanvasTriangle triangle(v0, v1, v2);
-//        drawTexturedTriangle(window, triangle, texture);
-//
-//        // Need to render the frame at the end, or nothing actually gets shown on the screen !
-//        window.renderFrame();
-//    }
-    bool hasRendered = false;
-
-    while (true) {
-        // We MUST poll for events - otherwise the window will freeze !
-        if (window.pollForInputEvents(event)) {
-            handleEvent(event, window);
-        }
-
-        // Only render once.
-        if (!hasRendered) {
-            CanvasPoint v0(160, 10);
-            v0.texturePoint = TexturePoint(195, 5);
-            CanvasPoint v1(300, 230);
-            v1.texturePoint = TexturePoint(395, 380);
-            CanvasPoint v2(10, 150);
-            v2.texturePoint = TexturePoint(65, 330);
-
-            CanvasTriangle triangle(v0, v1, v2);
-            drawTexturedTriangle(window, triangle, texture);
-
-            // Need to render the frame at the end, or nothing actually gets shown on the screen !
-            window.renderFrame();
-
-            hasRendered = true;
-        }
+    // Poll for events
+    if (window.pollForInputEvents(event)) {
+        handleEvent(event, window);
     }
 
+    // Draw and render the frame
+    draw(window);
+    window.renderFrame();
+
+    // Pause and wait for user input
+    std::cout << "Press Enter to exit..." << std::endl;
+    std::cin.get();
+
+    return 0;
 }
 
+
+//int main(int argc, char *argv[]) {
+//    DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
+//    SDL_Event event;
+//
+//    // path to the ppm file:
+//    TextureMap texture("texture.ppm");
+//
+//    // test function for interpolateSingleFloats
+//    std::vector<float> result;
+//    result = interpolateSingleFloats(2.2, 8.5, 7);
+//    for(size_t i=0; i<result.size(); i++) std::cout << result[i] << " ";
+//    std::cout << std::endl;
+//
+//    // test function for interpolateThreeElementValues
+//    glm::vec3 from(1.0, 4.0, 9.2);
+//    glm::vec3 to(4.0, 1.0, 9.8);
+//    std::vector<glm::vec3> results = interpolateThreeElementValues(from, to, 4);
+//    for (size_t i = 0; i < results.size(); i++) {
+//        std::cout << "(" << results[i].x << ", " << results[i].y << ", " << results[i].z << ")" << std::endl;
+//    }
+////// random triangle
+////    CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
+////    Colour randomColour = generateRandomColour();
+////    drawTriangle(window, randomTriangle, randomColour);
+//
+////    while (true) {
+////        // We MUST poll for events - otherwise the window will freeze !
+////        if (window.pollForInputEvents(event)) handleEvent(event, window);
+//////        draw(window);
+////
+////        CanvasPoint v0(160, 10);
+////        v0.texturePoint = TexturePoint(195, 5);
+////        CanvasPoint v1(300, 230);
+////        v1.texturePoint = TexturePoint(395, 380);
+////        CanvasPoint v2(10, 150);
+////        v2.texturePoint = TexturePoint(65, 330);
+////
+////        CanvasTriangle triangle(v0, v1, v2);
+////        drawTexturedTriangle(window, triangle, texture);
+////
+////        // Need to render the frame at the end, or nothing actually gets shown on the screen !
+////        window.renderFrame();
+////    }
+//    bool hasRendered = false;
+//
+//    while (true) {
+//        // We MUST poll for events - otherwise the window will freeze !
+//        if (window.pollForInputEvents(event)) {
+//            handleEvent(event, window);
+//        }
+//
+//        // Only render once.
+//        if (!hasRendered) {
+//            CanvasPoint v0(160, 10);
+//            v0.texturePoint = TexturePoint(195, 5);
+//            CanvasPoint v1(300, 230);
+//            v1.texturePoint = TexturePoint(395, 380);
+//            CanvasPoint v2(10, 150);
+//            v2.texturePoint = TexturePoint(65, 330);
+//
+//            CanvasTriangle triangle(v0, v1, v2);
+//            drawTexturedTriangle(window, triangle, texture);
+//
+//            // Need to render the frame at the end, or nothing actually gets shown on the screen !
+//            window.renderFrame();
+//
+//            hasRendered = true;
+//        }
+//    }
+//
+//}
+//

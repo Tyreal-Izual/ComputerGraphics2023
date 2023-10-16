@@ -1,0 +1,33 @@
+Certainly! Let's break down the provided information:
+
+1. **Objective**:
+   - Render a 3D model as a 2D image on the screen.
+   - The concept of a camera is introduced to decide the perspective from which the 3D model will be viewed.
+   - 3D models are represented by a bunch of vertices in 3D space. The `ModelTriangle` class provided helps with this representation.
+
+2. **Task 1**:
+   - Read in 3D models from flat data files, specifically the OBJ file format.
+   - Populate a vector of `ModelTriangles` from the OBJ file.
+   - Only vertices (lines starting with `v`) and faces (lines starting with `f`) need to be processed.
+   - OBJ file vertices are indexed from 1, but vectors in C++ are indexed from 0, so care needs to be taken.
+   - A scaling factor is introduced to adjust the size of the model when loaded. This helps avoid issues like the "bunnyzilla" problem where a model might be too large compared to others.
+
+3. **Hints & Tips**:
+   - Use `ifstream` to read data from the geometry file.
+   - Use the provided `split` function to tokenize the lines from the OBJ file.
+   - Keep the parser simple since the focus isn't on robust parsing, but on rendering.
+
+4. **Files and Code**:
+   - The `ModelTriangle.cpp` file provides an implementation for representing a triangle in 3D space.
+   - The `utils.cpp` file has a `split` function to help tokenize strings.
+   - The provided `Cornell-box.mtl` file contains material information, which isn't yet used in Task 1.
+   - The `Cornell-box.obj` file contains the 3D model data in OBJ format, which needs to be parsed and loaded.
+
+5. **What needs to be done**:
+   - Write a parser to read the `Cornell-box.obj` file.
+   - Parse vertices (lines starting with `v`) and faces (lines starting with `f`).
+   - Populate a vector of `ModelTriangles` using the parsed data.
+   - Print the loaded triangles to ensure they are parsed correctly.
+   - Add a scaling factor to adjust the model's size.
+
+Would you like me to start with writing the parser for the `Cornell-box.obj` file?
