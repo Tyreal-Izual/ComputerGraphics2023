@@ -152,36 +152,73 @@ void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour)
 }
 
 // filled triangle:
-void drawFilledTriangle(DrawingWindow &window, CanvasTriangle &triangle, const Colour &colour) {
-    // Sort the vertices by y-coordinate
-    std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
-    std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
-        return a.y < b.y;
-    });
+//void drawFilledTriangle(DrawingWindow &window, CanvasTriangle &triangle, const Colour &colour) {
+//    // Sort the vertices by y-coordinate
+//    std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
+//    std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
+//        return a.y < b.y;
+//    });
+//
+//    // slopes of the edges
+////    float slope1 = (vertices[1].x - vertices[0].x) / (vertices[1].y - vertices[0].y);
+//    float slope1 = (vertices[1].y - vertices[0].y) == 0 ? 0 : (vertices[1].x - vertices[0].x) / (vertices[1].y - vertices[0].y);
+//    float slope2 = (vertices[2].y - vertices[0].y) == 0 ? 0 : (vertices[2].x - vertices[0].x) / (vertices[2].y - vertices[0].y);
+//    float slope3 = (vertices[2].y - vertices[1].y) == 0 ? 0 : (vertices[2].x - vertices[1].x) / (vertices[2].y - vertices[1].y);
+//
+//    // Iterate over the y-values of the triangle
+//    for (int y = (int)vertices[0].y; y < (int)vertices[1].y; y++) {
+//        int x1 = vertices[0].x + slope1 * (y - vertices[0].y);
+//        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
+//        for (int x = x1; x < x2; x++) {
+//            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
+//        }
+//    }
+//
+//    for (int y = (int)vertices[1].y; y < (int)vertices[2].y; y++) {
+//        int x1 = vertices[1].x + slope3 * (y - vertices[1].y);
+//        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
+//        for (int x = x1; x < x2; x++) {
+//            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
+//        }
+//    }
+//    drawTriangle(window, triangle, Colour(255, 255, 255)); // white outline
+//}
 
-    // slopes of the edges
-    float slope1 = (vertices[1].x - vertices[0].x) / (vertices[1].y - vertices[0].y);
-    float slope2 = (vertices[2].x - vertices[0].x) / (vertices[2].y - vertices[0].y);
-    float slope3 = (vertices[2].x - vertices[1].x) / (vertices[2].y - vertices[1].y);
+void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour) {
+    // 1. Sort the vertices by y-coordinates
+    if (triangle.v0().y > triangle.v1().y) std::swap(triangle.v0(), triangle.v1());
+    if (triangle.v0().y > triangle.v2().y) std::swap(triangle.v0(), triangle.v2());
+    if (triangle.v1().y > triangle.v2().y) std::swap(triangle.v1(), triangle.v2());
 
-    // Iterate over the y-values of the triangle
-    for (int y = (int)vertices[0].y; y < (int)vertices[1].y; y++) {
-        int x1 = vertices[0].x + slope1 * (y - vertices[0].y);
-        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
-        for (int x = x1; x < x2; x++) {
-            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
-        }
+    // 2. Calculate the slopes
+    float slope1 = (triangle.v2().x - triangle.v0().x) / (triangle.v2().y - triangle.v0().y);
+    float slope2 = (triangle.v1().x - triangle.v0().x) / (triangle.v1().y - triangle.v0().y);
+    float slope3 = (triangle.v2().x - triangle.v1().x) / (triangle.v2().y - triangle.v1().y);
+
+    // 3. Draw horizontal lines
+    for (float y = triangle.v0().y; y <= triangle.v1().y; y++) {
+        float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
+        float x2 = triangle.v0().x + slope2 * (y - triangle.v0().y);
+        if (x1 > x2) std::swap(x1, x2);
+        CanvasPoint start(round(x1), y);
+        CanvasPoint end(round(x2), y);
+        drawLine(window, start, end, colour);
     }
 
-    for (int y = (int)vertices[1].y; y < (int)vertices[2].y; y++) {
-        int x1 = vertices[1].x + slope3 * (y - vertices[1].y);
-        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
-        for (int x = x1; x < x2; x++) {
-            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
-        }
+    for (float y = triangle.v1().y; y <= triangle.v2().y; y++) {
+        float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
+        float x2 = triangle.v1().x + slope3 * (y - triangle.v1().y);
+        if (x1 > x2) std::swap(x1, x2);
+        CanvasPoint start(round(x1), y);
+        CanvasPoint end(round(x2), y);
+        drawLine(window, start, end, colour);
     }
-    drawTriangle(window, triangle, Colour(255, 255, 255)); // white outline
+
+    // Drawing white stroke over the filled triangle
+    Colour whiteColour(255, 255, 255);
+    drawTriangle(window, triangle, whiteColour);
 }
+
 
 // task 5
 void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &texture) {
@@ -363,12 +400,12 @@ std::unordered_map<std::string, Colour> loadMaterials(const std::string& filenam
         if (keyword == "newmtl") {
             ss >> currentMaterialName;
         } else if (keyword == "Kd") {
-            int r, g, b;
+            float r, g, b;
             ss >> r >> g >> b;
-            r *= 255; // Convert to 8-bit color
+            r *= 255;
             g *= 255;
             b *= 255;
-            palette[currentMaterialName] = Colour(currentMaterialName, r, g, b);
+            palette[currentMaterialName] = Colour(currentMaterialName, static_cast<int>(r), static_cast<int>(g), static_cast<int>(b));
         }
     }
 
@@ -428,12 +465,7 @@ const float IMAGE_PLANE_SCALING = 240.0f;  // The scaling factor
 CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const glm::vec3 &vertexPosition, float focalLength) {
     float xi = vertexPosition.x - cameraPosition.x;
     float yi = vertexPosition.y - cameraPosition.y;
-    float zi = cameraPosition.z - vertexPosition.z ;
-//    glm::vec3 direction = glm::normalize(vertexPosition - cameraPosition);
-//
-//    float xi = direction.x;
-//    float yi = direction.y;
-//    float zi = direction.z;
+    float zi = cameraPosition.z - vertexPosition.z;
 
     float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2 ;
     float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2 ;
@@ -443,41 +475,6 @@ CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const gl
 }
 
 
-//void draw(DrawingWindow &window) {
-//    window.clearPixels();
-//
-//    glm::vec3 cameraPosition(0.0, 0.0, 4.0);
-//    float focalLength = 2.0;
-//
-//    std::vector<ModelTriangle> triangles = loadOBJWithMaterials("/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj", "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl", 0.35);
-//    std::cout << "Number of triangles: " << triangles.size() << std::endl;
-//    for (const ModelTriangle &triangle : triangles) {
-//        for (int i = 0; i < 3; i++) {
-//            CanvasPoint projectedPoint = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[i], focalLength);
-//            std::cout << "Projected point: (" << projectedPoint.x << ", " << projectedPoint.y << ")" << std::endl;
-//
-//            // Scaling
-//            // Scale around the center
-////            projectedPoint.x = (projectedPoint.x - WIDTH / 2) * 240 + WIDTH / 2;
-////            projectedPoint.y = (projectedPoint.y - HEIGHT / 2) * 240 + HEIGHT / 2;
-//
-//
-//            // Flip upside-down if needed
-//            projectedPoint.y = HEIGHT - projectedPoint.y;
-//
-////            projectedPoint.x /= IMAGE_PLANE_SCALING;
-////            projectedPoint.y /= IMAGE_PLANE_SCALING;
-//
-//            // Draw the point on the window
-//            if (projectedPoint.x >= 0 && projectedPoint.x < WIDTH && projectedPoint.y >= 0 && projectedPoint.y < HEIGHT) {
-//                window.setPixelColour(projectedPoint.x, projectedPoint.y, 0xFFFFFF);
-//            } else{
-//                std::cout << "Point out of bounds: (" << projectedPoint.x << ", " << projectedPoint.y << ")" << std::endl;
-//
-//            }
-//        }
-//    }
-//}
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
@@ -488,7 +485,7 @@ void draw(DrawingWindow &window) {
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials("/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj", "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl", 0.35);
     std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
 
-    Colour white(255, 255, 255); // For wireframe
+//    Colour white(255, 255, 255); // For wireframe
 
     for (const ModelTriangle &modelTriangle : modelTriangles) {
         CanvasPoint v0 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[0], focalLength);
@@ -502,22 +499,10 @@ void draw(DrawingWindow &window) {
         v2.y = HEIGHT - v2.y;
 
         CanvasTriangle canvasTriangle(v0, v1, v2);
-        drawTriangle(window, canvasTriangle, white); // Draw the wireframe
+        drawFilledTriangle(window, canvasTriangle, modelTriangle.colour); // Draw the filled triangle
     }
 }
 
-
-//int main(int argc, char *argv[]) {
-//    DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
-//    SDL_Event event;
-//    while (true) {
-//        // We MUST poll for events - otherwise the window will freeze !
-//        if (window.pollForInputEvents(event)) handleEvent(event, window);
-//        draw(window);
-//        // Need to render the frame at the end, or nothing actually gets shown on the screen !
-//        window.renderFrame();
-//    }
-//}
 
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
@@ -538,6 +523,19 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
+//int main(int argc, char *argv[]) {
+//    DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
+//    SDL_Event event;
+//    while (true) {
+//        // We MUST poll for events - otherwise the window will freeze !
+//        if (window.pollForInputEvents(event)) handleEvent(event, window);
+//        draw(window);
+//        // Need to render the frame at the end, or nothing actually gets shown on the screen !
+//        window.renderFrame();
+//    }
+//}
+
 
 
 //int main(int argc, char *argv[]) {
