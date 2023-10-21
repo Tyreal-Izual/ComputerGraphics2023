@@ -94,14 +94,19 @@ std::vector <glm::vec3> interpolateThreeElementValues(glm::vec3 from, glm::vec3 
 //    }
 //}
 
+std::vector<std::vector<float>> depthBuffer(WIDTH, std::vector<float>(HEIGHT, 0.0f));
+
 // Line Drawing using Bresenham's algorithm:
 // here, we have window, start and end point, and color of the line.
 void drawLine(DrawingWindow &window, const CanvasPoint &start, const CanvasPoint &end, const Colour &colour) {
     // x1,y1,x2,y2 for start and end x,y.
     int x1 = start.x;
     int y1 = start.y;
+    float depth1 = start.depth;
+
     int x2 = end.x;
     int y2 = end.y;
+    float depth2 = end.depth;
 
     // dx and dy for absolute difference in x and y.
     int dx = abs(x2 - x1);
@@ -112,19 +117,28 @@ void drawLine(DrawingWindow &window, const CanvasPoint &start, const CanvasPoint
 
     int err = dx - dy;
 
+    float depthSlope = (depth2 - depth1) / std::max(dx, dy);
+
     uint32_t packedColour = (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue;
 
     while (true) {
-        window.setPixelColour(x1, y1, packedColour);
+        if (depth1 > depthBuffer[x1][y1]) {
+            depthBuffer[x1][y1] = depth1;
+            window.setPixelColour(x1, y1, packedColour);
+        }
+
         if (x1 == x2 && y1 == y2) break;
+
         int e2 = 2 * err;
         if (e2 > -dy) {
             err -= dy;
             x1 += sx;
+            depth1 += depthSlope;
         }
         if (e2 < dx) {
             err += dx;
             y1 += sy;
+            depth1 += depthSlope;
         }
     }
 }
@@ -151,66 +165,58 @@ void drawTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour)
     drawLine(window, triangle.v0(), triangle.v2(), colour);
 }
 
-// filled triangle:
-//void drawFilledTriangle(DrawingWindow &window, CanvasTriangle &triangle, const Colour &colour) {
-//    // Sort the vertices by y-coordinate
-//    std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
-//    std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
-//        return a.y < b.y;
-//    });
-//
-//    // slopes of the edges
-////    float slope1 = (vertices[1].x - vertices[0].x) / (vertices[1].y - vertices[0].y);
-//    float slope1 = (vertices[1].y - vertices[0].y) == 0 ? 0 : (vertices[1].x - vertices[0].x) / (vertices[1].y - vertices[0].y);
-//    float slope2 = (vertices[2].y - vertices[0].y) == 0 ? 0 : (vertices[2].x - vertices[0].x) / (vertices[2].y - vertices[0].y);
-//    float slope3 = (vertices[2].y - vertices[1].y) == 0 ? 0 : (vertices[2].x - vertices[1].x) / (vertices[2].y - vertices[1].y);
-//
-//    // Iterate over the y-values of the triangle
-//    for (int y = (int)vertices[0].y; y < (int)vertices[1].y; y++) {
-//        int x1 = vertices[0].x + slope1 * (y - vertices[0].y);
-//        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
-//        for (int x = x1; x < x2; x++) {
-//            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
-//        }
-//    }
-//
-//    for (int y = (int)vertices[1].y; y < (int)vertices[2].y; y++) {
-//        int x1 = vertices[1].x + slope3 * (y - vertices[1].y);
-//        int x2 = vertices[0].x + slope2 * (y - vertices[0].y);
-//        for (int x = x1; x < x2; x++) {
-//            window.setPixelColour(x, y, (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue);
-//        }
-//    }
-//    drawTriangle(window, triangle, Colour(255, 255, 255)); // white outline
-//}
+
 
 void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour) {
-    // 1. Sort the vertices by y-coordinates
+    // Sort the vertices by y-coordinates
     if (triangle.v0().y > triangle.v1().y) std::swap(triangle.v0(), triangle.v1());
     if (triangle.v0().y > triangle.v2().y) std::swap(triangle.v0(), triangle.v2());
     if (triangle.v1().y > triangle.v2().y) std::swap(triangle.v1(), triangle.v2());
 
-    // 2. Calculate the slopes
+    // Calculate the slopes
     float slope1 = (triangle.v2().x - triangle.v0().x) / (triangle.v2().y - triangle.v0().y);
     float slope2 = (triangle.v1().x - triangle.v0().x) / (triangle.v1().y - triangle.v0().y);
     float slope3 = (triangle.v2().x - triangle.v1().x) / (triangle.v2().y - triangle.v1().y);
 
-    // 3. Draw horizontal lines
+    // Draw horizontal lines
     for (float y = triangle.v0().y; y <= triangle.v1().y; y++) {
+        float proportion = (y - triangle.v0().y) / (triangle.v1().y - triangle.v0().y);
         float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
+        float depth1 = triangle.v0().depth + proportion * (triangle.v1().depth - triangle.v0().depth);
+
         float x2 = triangle.v0().x + slope2 * (y - triangle.v0().y);
-        if (x1 > x2) std::swap(x1, x2);
-        CanvasPoint start(round(x1), y);
-        CanvasPoint end(round(x2), y);
+        float depth2 = triangle.v0().depth;  // Since it's the same vertex
+
+//        if (x1 > x2) std::swap(x1, x2);
+        if (x1 > x2) {
+            std::swap(x1, x2);
+            std::swap(depth1, depth2);
+        }
+        CanvasPoint start(round(x1), y, depth1);
+        CanvasPoint end(round(x2), y, depth2);
+
+//        CanvasPoint start(round(x1), y);
+//        CanvasPoint end(round(x2), y);
         drawLine(window, start, end, colour);
     }
 
     for (float y = triangle.v1().y; y <= triangle.v2().y; y++) {
+        float proportion = (y - triangle.v1().y) / (triangle.v2().y - triangle.v1().y);
         float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
+        float depth1 = triangle.v0().depth;  // Same vertex
+
         float x2 = triangle.v1().x + slope3 * (y - triangle.v1().y);
-        if (x1 > x2) std::swap(x1, x2);
-        CanvasPoint start(round(x1), y);
-        CanvasPoint end(round(x2), y);
+        float depth2 = triangle.v1().depth + proportion * (triangle.v2().depth - triangle.v1().depth);
+
+//        if (x1 > x2) std::swap(x1, x2);
+        if (x1 > x2) {
+            std::swap(x1, x2);
+            std::swap(depth1, depth2);
+        }
+        CanvasPoint start(round(x1), y, depth1);
+        CanvasPoint end(round(x2), y, depth2);
+//        CanvasPoint start(round(x1), y);
+//        CanvasPoint end(round(x2), y);
         drawLine(window, start, end, colour);
     }
 
@@ -471,7 +477,7 @@ CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const gl
     float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2 ;
     std::cout << "ui,vi point: (" << ui << ", " << vi << ")" << std::endl;
 
-    return CanvasPoint(ui, vi);
+    return CanvasPoint(ui, vi, 1/zi);
 }
 
 
