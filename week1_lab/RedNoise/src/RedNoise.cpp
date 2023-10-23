@@ -485,6 +485,10 @@ CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const gl
 void draw(DrawingWindow &window) {
     window.clearPixels();
 
+    for (int x = 0; x < WIDTH; x++)
+        for (int y = 0; y < HEIGHT; y++)
+            depthBuffer[x][y] = 0.0f;
+
     glm::vec3 cameraPosition(0, 0, 4.0);
     float focalLength = 1.5;
 
@@ -509,38 +513,39 @@ void draw(DrawingWindow &window) {
     }
 }
 
+//
+//int main(int argc, char *argv[]) {
+//    DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
+//    SDL_Event event;
+//
+//    // Poll for events
+//    if (window.pollForInputEvents(event)) {
+//        handleEvent(event, window);
+//    }
+//
+//    // Draw and render the frame
+//    draw(window);
+//    window.renderFrame();
+//
+//    // Pause and wait for user input
+//    std::cout << "Press Enter to exit..." << std::endl;
+//    std::cin.get();
+//
+//    return 0;
+//}
 
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
-
-    // Poll for events
-    if (window.pollForInputEvents(event)) {
-        handleEvent(event, window);
+    while (true) {
+        // We MUST poll for events - otherwise the window will freeze!
+        if (window.pollForInputEvents(event)) handleEvent(event, window);
+        draw(window);
+        // Need to render the frame at the end, or nothing actually gets shown on the screen!
+        window.renderFrame();
     }
-
-    // Draw and render the frame
-    draw(window);
-    window.renderFrame();
-
-    // Pause and wait for user input
-    std::cout << "Press Enter to exit..." << std::endl;
-    std::cin.get();
-
-    return 0;
 }
 
-//int main(int argc, char *argv[]) {
-//    DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
-//    SDL_Event event;
-//    while (true) {
-//        // We MUST poll for events - otherwise the window will freeze !
-//        if (window.pollForInputEvents(event)) handleEvent(event, window);
-//        draw(window);
-//        // Need to render the frame at the end, or nothing actually gets shown on the screen !
-//        window.renderFrame();
-//    }
-//}
 
 
 
