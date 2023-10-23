@@ -221,8 +221,8 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
     }
 
     // Drawing white stroke over the filled triangle
-    Colour whiteColour(255, 255, 255);
-    drawTriangle(window, triangle, whiteColour);
+//    Colour whiteColour(255, 255, 255);
+//    drawTriangle(window, triangle, whiteColour);
 }
 
 
