@@ -229,11 +229,11 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
 // task 5
 void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &texture) {
     //  Sort the triangle vertices by their y-values.
-    printf("Triangle vertices:\n");
-    printf("V0: (%f, %f), V1: (%f, %f), V2: (%f, %f)\n",
-           triangle.v0().x, triangle.v0().y,
-           triangle.v1().x, triangle.v1().y,
-           triangle.v2().x, triangle.v2().y);
+//    printf("Triangle vertices:\n");
+//    printf("V0: (%f, %f), V1: (%f, %f), V2: (%f, %f)\n",
+//           triangle.v0().x, triangle.v0().y,
+//           triangle.v1().x, triangle.v1().y,
+//           triangle.v2().x, triangle.v2().y);
 
     std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
     std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
@@ -278,7 +278,7 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
 
         int xFull = top.x + alphaFull * (bot.x - top.x);
         int xPart = flatBottom ? mid.x + alphaPart * (bot.x - mid.x) : top.x + alphaPart * (mid.x - top.x);
-        printf("y: %d, xFull: %d, xPart: %d\n", y, xFull, xPart);
+//        printf("y: %d, xFull: %d, xPart: %d\n", y, xFull, xPart);
 
         float texXFull = top.texturePoint.x + alphaFull * (bot.texturePoint.x - top.texturePoint.x);
         float texXPart = flatBottom ? mid.texturePoint.x + alphaPart * (bot.texturePoint.x - mid.texturePoint.x) : top.texturePoint.x + alphaPart * (mid.texturePoint.x - top.texturePoint.x);
@@ -444,9 +444,9 @@ std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, 
             vertices.push_back(vertex);
             // Print out the first 5 vertices for checking
             if (vertices.size() <= 100) {
-                std::cout << std::setprecision(10) << "Loaded vertex: (" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")" << std::endl;
-                std::cout << std::setprecision(10) << "Loaded vertex: (" << (stof(tokens[1])* scale , stof(tokens[2])* scale , stof(tokens[3])* scale ) << ")" << std::endl;
-                std::cout << std::setprecision(10) << "vertex: (" << vertex.x <<"," << vertex.y << ","<< vertex.z << ")" << std::endl;
+//                std::cout << std::setprecision(10) << "Loaded vertex: (" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")" << std::endl;
+//                std::cout << std::setprecision(10) << "Loaded vertex: (" << (stof(tokens[1])* scale , stof(tokens[2])* scale , stof(tokens[3])* scale ) << ")" << std::endl;
+//                std::cout << std::setprecision(10) << "vertex: (" << vertex.x <<"," << vertex.y << ","<< vertex.z << ")" << std::endl;
 
             }
         } else if (tokens[0] == "usemtl") {
@@ -455,9 +455,9 @@ std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, 
             ModelTriangle triangle(vertices[stoi(tokens[1]) - 1], vertices[stoi(tokens[2]) - 1], vertices[stoi(tokens[3]) - 1], currentColour);
             triangles.push_back(triangle);
             if (triangles.size() <= 100) {
-                std::cout << "Loaded triangle with vertices: \n";
+//                std::cout << "Loaded triangle with vertices: \n";
                 for (const auto& vertex : triangle.vertices) {
-                    std::cout << "\t(" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")\n";
+//                    std::cout << "\t(" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")\n";
                 }}
         }
     }
@@ -475,7 +475,7 @@ CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const gl
 
     float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2 ;
     float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2 ;
-    std::cout << "ui,vi point: (" << ui << ", " << vi << ")" << std::endl;
+//    std::cout << "ui,vi point: (" << ui << ", " << vi << ")" << std::endl;
 
     return CanvasPoint(ui, vi, 1/zi);
 }
@@ -493,7 +493,7 @@ void draw(DrawingWindow &window) {
     float focalLength = 1.5;
 
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials("/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj", "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl", 0.35);
-    std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
+//    std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
 
 //    Colour white(255, 255, 255); // For wireframe
 
