@@ -12,7 +12,12 @@
 #include <unordered_map>
 #define WIDTH 320
 #define HEIGHT 240
+// Global camera position and rotation angles
+glm::vec3 cameraPosition(0, 0, 4.0);
+glm::mat3 cameraOrientation = glm::mat3(1.0f);  // identity matrix
 
+float rotationAngleY = 0.0f; // rotation about the Y-axis
+float rotationAngleX = 0.0f; // rotation about the X-axis
 
 // RedNoise
 //void draw(DrawingWindow &window) {
@@ -122,9 +127,11 @@ void drawLine(DrawingWindow &window, const CanvasPoint &start, const CanvasPoint
     uint32_t packedColour = (255 << 24) + (colour.red << 16) + (colour.green << 8) + colour.blue;
 
     while (true) {
-        if (depth1 > depthBuffer[x1][y1]) {
-            depthBuffer[x1][y1] = depth1;
-            window.setPixelColour(x1, y1, packedColour);
+        if (x1 >= 0 && x1 < WIDTH && y1 >= 0 && y1 < HEIGHT) {
+            if (depth1 > depthBuffer[x1][y1]) {
+                depthBuffer[x1][y1] = depth1;
+                window.setPixelColour(x1, y1, packedColour);
+            }
         }
 
         if (x1 == x2 && y1 == y2) break;
@@ -179,7 +186,7 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
     float slope3 = (triangle.v2().x - triangle.v1().x) / (triangle.v2().y - triangle.v1().y);
 
     // Draw horizontal lines
-    for (float y = triangle.v0().y; y <= triangle.v1().y; y++) {
+    for (float y = std::max(triangle.v0().y, 0.0f); y <= std::min(triangle.v1().y, static_cast<float>(HEIGHT - 1)); y++) {
         float proportion = (y - triangle.v0().y) / (triangle.v1().y - triangle.v0().y);
         float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
         float depth1 = triangle.v0().depth + proportion * (triangle.v1().depth - triangle.v0().depth);
@@ -200,7 +207,7 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
         drawLine(window, start, end, colour);
     }
 
-    for (float y = triangle.v1().y; y <= triangle.v2().y; y++) {
+    for (float y = std::max(triangle.v1().y, 0.0f); y <= std::min(triangle.v2().y, static_cast<float>(HEIGHT - 1)); y++) {
         float proportion = (y - triangle.v1().y) / (triangle.v2().y - triangle.v1().y);
         float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
         float depth1 = triangle.v0().depth;  // Same vertex
@@ -323,31 +330,131 @@ Colour generateRandomColour() {
     return Colour(r, g, b);
 }
 
-
 // keypress
 void handleEvent(SDL_Event event, DrawingWindow &window) {
+    float translationSpeed = 0.1f; // adjust as needed
+    float rotationSpeed = 0.005f; // in radians; adjust as needed
+
     if (event.type == SDL_KEYDOWN) {
-        if (event.key.keysym.sym == SDLK_LEFT) std::cout << "LEFT" << std::endl;
-        else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
-        else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
-        else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
-        else if (event.key.keysym.sym == SDLK_u) {
-            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
-            Colour randomColour = generateRandomColour();
-            drawTriangle(window, randomTriangle, randomColour);
-            std::cout << "DRAW TRIANGLE" << std::endl;
+        if (event.key.keysym.sym == SDLK_LEFT) { // go left
+            cameraPosition.x -= translationSpeed;
+        } else if (event.key.keysym.sym == SDLK_RIGHT) { // go right
+            cameraPosition.x += translationSpeed;
+        } else if (event.key.keysym.sym == SDLK_UP) { // go up
+            cameraPosition.y += translationSpeed;
+        } else if (event.key.keysym.sym == SDLK_DOWN) { // go down
+            cameraPosition.y -= translationSpeed;
+        } else if (event.key.keysym.sym == SDLK_w) { // move closer
+            cameraPosition.z -= translationSpeed;
+        } else if (event.key.keysym.sym == SDLK_s) { // move far
+            cameraPosition.z += translationSpeed;
+        } else if (event.key.keysym.sym == SDLK_a) { // rotate y axis
+            rotationAngleY -= rotationSpeed;
+            glm::mat3 rotationMatrix = glm::mat3(
+                    cos(rotationAngleY), 0.0f, -sin(rotationAngleY),
+                    0.0f, 1.0f, 0.0f,
+                    sin(rotationAngleY), 0.0f, cos(rotationAngleY)
+            );
+            cameraPosition = rotationMatrix * cameraPosition;
+        } else if (event.key.keysym.sym == SDLK_d) { // rotate y axis
+            rotationAngleY += rotationSpeed;
+            glm::mat3 rotationMatrix = glm::mat3(
+                    cos(rotationAngleY), 0.0f, -sin(rotationAngleY),
+                    0.0f, 1.0f, 0.0f,
+                    sin(rotationAngleY), 0.0f, cos(rotationAngleY)
+            );
+            cameraPosition = rotationMatrix * cameraPosition;
+        } else if (event.key.keysym.sym == SDLK_q) { // rotate x axis
+            rotationAngleX -= rotationSpeed;
+            glm::mat3 rotationMatrix = glm::mat3(
+                    1.0f, 0.0f, 0.0f,
+                    0.0f, cos(rotationAngleX), -sin(rotationAngleX),
+                    0.0f, sin(rotationAngleX), cos(rotationAngleX)
+            );
+            cameraPosition = rotationMatrix * cameraPosition;
+        } else if (event.key.keysym.sym == SDLK_e) { // rotate x axis
+            rotationAngleX += rotationSpeed;
+            glm::mat3 rotationMatrix = glm::mat3(
+                    1.0f, 0.0f, 0.0f,
+                    0.0f, cos(rotationAngleX), -sin(rotationAngleX),
+                    0.0f, sin(rotationAngleX), cos(rotationAngleX)
+            );
+            cameraPosition = rotationMatrix * cameraPosition;
         }
-        else if (event.key.keysym.sym == SDLK_f){
-            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
-            Colour randomColour = generateRandomColour();
-            drawFilledTriangle(window, randomTriangle, randomColour);
-            std::cout << "DRAW FILLED TRIANGLE" << std::endl;
+        else if (event.key.keysym.sym == SDLK_j) {  // Pan left
+            glm::mat3 rotationMatrix = glm::mat3(
+                    cos(rotationSpeed), 0.0f, sin(rotationSpeed),
+                    0.0f, 1.0f, 0.0f,
+                    -sin(rotationSpeed), 0.0f, cos(rotationSpeed)
+            );
+            cameraOrientation = rotationMatrix * cameraOrientation;
+        } else if (event.key.keysym.sym == SDLK_l) {  // Pan right
+            glm::mat3 rotationMatrix = glm::mat3(
+                    cos(-rotationSpeed), 0.0f, sin(-rotationSpeed),
+                    0.0f, 1.0f, 0.0f,
+                    -sin(-rotationSpeed), 0.0f, cos(-rotationSpeed)
+            );
+            cameraOrientation = rotationMatrix * cameraOrientation;
+        } else if (event.key.keysym.sym == SDLK_i) {  // Tilt up
+            glm::mat3 rotationMatrix = glm::mat3(
+                    1.0f, 0.0f, 0.0f,
+                    0.0f, cos(rotationSpeed), -sin(rotationSpeed),
+                    0.0f, sin(rotationSpeed), cos(rotationSpeed)
+            );
+            cameraOrientation = rotationMatrix * cameraOrientation;
+        } else if (event.key.keysym.sym == SDLK_k) {  // Tilt down
+            glm::mat3 rotationMatrix = glm::mat3(
+                    1.0f, 0.0f, 0.0f,
+                    0.0f, cos(-rotationSpeed), -sin(-rotationSpeed),
+                    0.0f, sin(-rotationSpeed), cos(-rotationSpeed)
+            );
+            cameraOrientation = rotationMatrix * cameraOrientation;
         }
+
+//        else if (event.key.keysym.sym == SDLK_u) {
+//            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
+//            Colour randomColour = generateRandomColour();
+//            drawTriangle(window, randomTriangle, randomColour);
+//            std::cout << "DRAW TRIANGLE" << std::endl;
+//        }
+//        else if (event.key.keysym.sym == SDLK_f){
+//            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
+//            Colour randomColour = generateRandomColour();
+//            drawFilledTriangle(window, randomTriangle, randomColour);
+//            std::cout << "DRAW FILLED TRIANGLE" << std::endl;
+//        }
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
     }
 }
+
+
+
+//// keypress
+//void handleEvent(SDL_Event event, DrawingWindow &window) {
+//    if (event.type == SDL_KEYDOWN) {
+//        if (event.key.keysym.sym == SDLK_LEFT) std::cout << "LEFT" << std::endl;
+//        else if (event.key.keysym.sym == SDLK_RIGHT) std::cout << "RIGHT" << std::endl;
+//        else if (event.key.keysym.sym == SDLK_UP) std::cout << "UP" << std::endl;
+//        else if (event.key.keysym.sym == SDLK_DOWN) std::cout << "DOWN" << std::endl;
+//        else if (event.key.keysym.sym == SDLK_u) {
+//            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
+//            Colour randomColour = generateRandomColour();
+//            drawTriangle(window, randomTriangle, randomColour);
+//            std::cout << "DRAW TRIANGLE" << std::endl;
+//        }
+//        else if (event.key.keysym.sym == SDLK_f){
+//            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
+//            Colour randomColour = generateRandomColour();
+//            drawFilledTriangle(window, randomTriangle, randomColour);
+//            std::cout << "DRAW FILLED TRIANGLE" << std::endl;
+//        }
+//    } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+//        window.savePPM("output.ppm");
+//        window.saveBMP("output.bmp");
+//    }
+//}
 
 
 //// week4 Task1
@@ -469,13 +576,21 @@ std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, 
 const float IMAGE_PLANE_SCALING = 240.0f;  // The scaling factor
 
 CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const glm::vec3 &vertexPosition, float focalLength) {
-    float xi = vertexPosition.x - cameraPosition.x;
-    float yi = vertexPosition.y - cameraPosition.y;
-    float zi = cameraPosition.z - vertexPosition.z;
-
-    float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2 ;
-    float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2 ;
+//    float xi = vertexPosition.x - cameraPosition.x;
+//    float yi = vertexPosition.y - cameraPosition.y;
+//    float zi = cameraPosition.z - vertexPosition.z;
+//
+//    float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2 ;
+//    float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2 ;
 //    std::cout << "ui,vi point: (" << ui << ", " << vi << ")" << std::endl;
+
+    glm::vec3 direction = cameraOrientation * (vertexPosition - cameraPosition);
+    float xi = direction.x;
+    float yi = direction.y;
+    float zi = -direction.z;  // We assume the camera looks into the negative Z direction
+
+    float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2;
+    float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2;
 
     return CanvasPoint(ui, vi, 1/zi);
 }
@@ -489,7 +604,7 @@ void draw(DrawingWindow &window) {
         for (int y = 0; y < HEIGHT; y++)
             depthBuffer[x][y] = 0.0f;
 
-    glm::vec3 cameraPosition(0, 0, 4.0);
+//    glm::vec3 cameraPosition(0, 0, 4.0);
     float focalLength = 1.5;
 
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials("/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj", "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl", 0.35);
