@@ -351,17 +351,17 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         } else if (event.key.keysym.sym == SDLK_a) { // rotate y axis
             rotationAngleY -= rotationSpeed;
             glm::mat3 rotationMatrix = glm::mat3(
-                    cos(rotationAngleY), 0.0f, -sin(rotationAngleY),
+                    cos(rotationAngleY), 0.0f, sin(rotationAngleY),
                     0.0f, 1.0f, 0.0f,
-                    sin(rotationAngleY), 0.0f, cos(rotationAngleY)
+                    -sin(rotationAngleY), 0.0f, cos(rotationAngleY)
             );
             cameraPosition = rotationMatrix * cameraPosition;
         } else if (event.key.keysym.sym == SDLK_d) { // rotate y axis
             rotationAngleY += rotationSpeed;
             glm::mat3 rotationMatrix = glm::mat3(
-                    cos(rotationAngleY), 0.0f, -sin(rotationAngleY),
+                    cos(rotationAngleY), 0.0f, sin(rotationAngleY),
                     0.0f, 1.0f, 0.0f,
-                    sin(rotationAngleY), 0.0f, cos(rotationAngleY)
+                    -sin(rotationAngleY), 0.0f, cos(rotationAngleY)
             );
             cameraPosition = rotationMatrix * cameraPosition;
         } else if (event.key.keysym.sym == SDLK_q) { // rotate x axis
