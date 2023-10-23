@@ -13,11 +13,10 @@
 #define WIDTH 320
 #define HEIGHT 240
 // Global camera position and rotation angles
-glm::vec3 cameraPosition(0, 0, 4.0);
+glm::vec3 cameraPosition(0.0, 0.0, 4.0);
 glm::mat3 cameraOrientation = glm::mat3(1.0f);  // identity matrix
-
-float rotationAngleY = 0.0f; // rotation about the Y-axis
-float rotationAngleX = 0.0f; // rotation about the X-axis
+float orbitAngle = 0.0f;
+bool isOrbiting = false;
 
 // RedNoise
 //void draw(DrawingWindow &window) {
@@ -330,54 +329,63 @@ Colour generateRandomColour() {
     return Colour(r, g, b);
 }
 
+
 // keypress
 void handleEvent(SDL_Event event, DrawingWindow &window) {
-    float translationSpeed = 0.1f; // adjust as needed
-    float rotationSpeed = 0.005f; // in radians; adjust as needed
+    float translationSpeed = 0.1f; //
+//    float rotationSpeed = glm::radians(5.0f);
+    float rotationSpeed = 0.005f;
 
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.sym == SDLK_LEFT) { // go left
             cameraPosition.x -= translationSpeed;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
         } else if (event.key.keysym.sym == SDLK_RIGHT) { // go right
             cameraPosition.x += translationSpeed;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
         } else if (event.key.keysym.sym == SDLK_UP) { // go up
             cameraPosition.y += translationSpeed;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
         } else if (event.key.keysym.sym == SDLK_DOWN) { // go down
             cameraPosition.y -= translationSpeed;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
         } else if (event.key.keysym.sym == SDLK_w) { // move closer
             cameraPosition.z -= translationSpeed;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
         } else if (event.key.keysym.sym == SDLK_s) { // move far
             cameraPosition.z += translationSpeed;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
+
         } else if (event.key.keysym.sym == SDLK_a) { // rotate y axis
-            rotationAngleY -= rotationSpeed;
+
             glm::mat3 rotationMatrix = glm::mat3(
-                    cos(rotationAngleY), 0.0f, sin(rotationAngleY),
+                    glm::cos(rotationSpeed), 0.0f, glm::sin(rotationSpeed),
                     0.0f, 1.0f, 0.0f,
-                    -sin(rotationAngleY), 0.0f, cos(rotationAngleY)
+                    -1*glm::sin(rotationSpeed), 0.0f, glm::cos(rotationSpeed)
             );
             cameraPosition = rotationMatrix * cameraPosition;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
+
         } else if (event.key.keysym.sym == SDLK_d) { // rotate y axis
-            rotationAngleY += rotationSpeed;
             glm::mat3 rotationMatrix = glm::mat3(
-                    cos(rotationAngleY), 0.0f, sin(rotationAngleY),
+                    cos(-rotationSpeed), 0.0f, sin(-rotationSpeed),
                     0.0f, 1.0f, 0.0f,
-                    -sin(rotationAngleY), 0.0f, cos(rotationAngleY)
+                    -sin(-rotationSpeed), 0.0f, cos(-rotationSpeed)
             );
             cameraPosition = rotationMatrix * cameraPosition;
+            std::cout << "Camera Position: (" << cameraPosition.x << ", " << cameraPosition.y << ", " << cameraPosition.z << ")" << std::endl;
         } else if (event.key.keysym.sym == SDLK_q) { // rotate x axis
-            rotationAngleX -= rotationSpeed;
             glm::mat3 rotationMatrix = glm::mat3(
                     1.0f, 0.0f, 0.0f,
-                    0.0f, cos(rotationAngleX), -sin(rotationAngleX),
-                    0.0f, sin(rotationAngleX), cos(rotationAngleX)
+                    0.0f, cos(rotationSpeed), -sin(rotationSpeed),
+                    0.0f, sin(rotationSpeed), cos(rotationSpeed)
             );
             cameraPosition = rotationMatrix * cameraPosition;
         } else if (event.key.keysym.sym == SDLK_e) { // rotate x axis
-            rotationAngleX += rotationSpeed;
             glm::mat3 rotationMatrix = glm::mat3(
                     1.0f, 0.0f, 0.0f,
-                    0.0f, cos(rotationAngleX), -sin(rotationAngleX),
-                    0.0f, sin(rotationAngleX), cos(rotationAngleX)
+                    0.0f, cos(-rotationSpeed), -sin(-rotationSpeed),
+                    0.0f, sin(-rotationSpeed), cos(-rotationSpeed)
             );
             cameraPosition = rotationMatrix * cameraPosition;
         }
@@ -409,7 +417,10 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
                     0.0f, sin(-rotationSpeed), cos(-rotationSpeed)
             );
             cameraOrientation = rotationMatrix * cameraOrientation;
+        }else if (event.key.keysym.sym == SDLK_g) {
+            isOrbiting = !isOrbiting;
         }
+
 
 //        else if (event.key.keysym.sym == SDLK_u) {
 //            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
@@ -595,10 +606,44 @@ CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const gl
     return CanvasPoint(ui, vi, 1/zi);
 }
 
+void lookAt(const glm::vec3 &point) {
+    glm::vec3 forward = glm::normalize(cameraPosition - point );  // The direction from the point to the camera
 
+    glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0,1,0), -forward));  // Compute the right direction
+    glm::vec3 up = glm::normalize(glm::cross(right, forward));  // Compute the up direction
+
+//    forward.x*=-1;
+    // Set the camera orientation
+    cameraOrientation[0] = right;
+    cameraOrientation[1] = up;
+    cameraOrientation[2] = forward;
+
+    std::cout << "Right: (" << right.x << ", " << right.y << ", " << right.z << ")" << std::endl;
+    std::cout << "Up: (" << up.x << ", " << up.y << ", " << up.z << ")" << std::endl;
+    std::cout << "Forward: (" << -forward.x << ", " << -forward.y << ", " << -forward.z << ")" << std::endl;
+
+}
 
 void draw(DrawingWindow &window) {
     window.clearPixels();
+    if (isOrbiting) {
+        orbitAngle += 0.005f; // Adjust this value to control the speed of the orbit
+        glm::mat3 rotationMatrix = glm::mat3(
+                cos(orbitAngle), 0.0f, sin(orbitAngle),
+                0.0f, 1.0f, 0.0f,
+                -sin(orbitAngle), 0.0f, cos(orbitAngle)
+        );
+
+        // Choose a suitable distance from the center of the Cornell Box (adjust as needed)
+        glm::vec3 initialCameraPosition(0.0f, 0.0f, 4.0f);
+        cameraPosition = rotationMatrix * initialCameraPosition;
+        lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
+        glm::mat3 mirrorMatrix = glm::mat3(-1.0f, 0.0f, 0.0f,
+                                           0.0f, 1.0f, 0.0f,
+                                           0.0f, 0.0f, 1.0f);
+
+        cameraOrientation = mirrorMatrix * cameraOrientation;
+    }
 
     for (int x = 0; x < WIDTH; x++)
         for (int y = 0; y < HEIGHT; y++)
