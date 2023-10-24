@@ -4,6 +4,17 @@ The following is what I'm done in CG2023:
 
 (the README of CG2023 is updating...... )
 
+The procedure for week5: 
+
+Translations:
+![translation.gif](photos%2Ftranslation.gif)
+Look up/down, right/left:
+![pan&tilt.gif](photos%2Fpan%26tilt.gif)
+Rotation:
+![rotation.gif](photos%2Frotation.gif)
+Front of the object:
+![front.png](photos%2Ffront.png)
+
 The procedure for week4:
 
 Starting of the week4, stuck at task6(showing 'stars' but not same one as given).
