@@ -71,72 +71,6 @@ void drawLine(DrawingWindow &window, const CanvasPoint &start, const CanvasPoint
 }
 
 
-
-//
-//void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour) {
-//    // Sort the vertices by y-coordinates
-//    if (triangle.v0().y > triangle.v1().y) std::swap(triangle.v0(), triangle.v1());
-//    if (triangle.v0().y > triangle.v2().y) std::swap(triangle.v0(), triangle.v2());
-//    if (triangle.v1().y > triangle.v2().y) std::swap(triangle.v1(), triangle.v2());
-//
-//    // Calculate the slopes
-//    float slope1 = (triangle.v2().x - triangle.v0().x) / (triangle.v2().y - triangle.v0().y);
-//    float slope2 = (triangle.v1().x - triangle.v0().x) / (triangle.v1().y - triangle.v0().y);
-//    float slope3 = (triangle.v2().x - triangle.v1().x) / (triangle.v2().y - triangle.v1().y);
-//
-//    // Draw horizontal lines
-//    for (float y = std::max(triangle.v0().y, 0.0f); y <= std::min(triangle.v1().y, static_cast<float>(HEIGHT - 1)); y++) {
-//        float proportion = (y - triangle.v0().y) / (triangle.v1().y - triangle.v0().y);
-//        float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
-////        float depth1 = triangle.v0().depth + proportion * (triangle.v1().depth - triangle.v0().depth);
-//        float depth1 = (1 - proportion) * triangle.v0().depth + proportion * triangle.v2().depth;
-//
-//        float x2 = triangle.v0().x + slope2 * (y - triangle.v0().y);
-////        float depth2 = triangle.v0().depth;  // Since it's the same vertex
-//        float depth2 = (1 - proportion) * triangle.v0().depth + proportion * triangle.v1().depth;
-//
-////        if (x1 > x2) std::swap(x1, x2);
-//        if (x1 > x2) {
-//            std::swap(x1, x2);
-//            std::swap(depth1, depth2);
-//        }
-//        CanvasPoint start(round(x1), y, depth1);
-//        CanvasPoint end(round(x2), y, depth2);
-//
-////        CanvasPoint start(round(x1), y);
-////        CanvasPoint end(round(x2), y);
-//        drawLine(window, start, end, colour);
-//    }
-//
-//    for (float y = std::max(triangle.v1().y, 0.0f); y <= std::min(triangle.v2().y, static_cast<float>(HEIGHT - 1)); y++) {
-//        float proportion = (y - triangle.v1().y) / (triangle.v2().y - triangle.v1().y);
-////        float x1 = triangle.v0().x + slope1 * (y - triangle.v0().y);
-////        float depth1 = triangle.v0().depth;  // Same vertex
-//        float x1 = triangle.v1().x + slope3 * (y - triangle.v1().y);
-//        float depth1 = (1 - proportion) * triangle.v1().depth + proportion * triangle.v2().depth;
-//
-////        float x2 = triangle.v1().x + slope3 * (y - triangle.v1().y);
-////        float depth2 = triangle.v1().depth + proportion * (triangle.v2().depth - triangle.v1().depth);
-//        float x2 = triangle.v0().x + slope1 * (y - triangle.v0().y);
-//        float depth2 = triangle.v0().depth;
-//
-////        if (x1 > x2) std::swap(x1, x2);
-//        if (x1 > x2) {
-//            std::swap(x1, x2);
-//            std::swap(depth1, depth2);
-//        }
-//        CanvasPoint start(round(x1), y, depth1);
-//        CanvasPoint end(round(x2), y, depth2);
-////        CanvasPoint start(round(x1), y);
-////        CanvasPoint end(round(x2), y);
-//        drawLine(window, start, end, colour);
-//    }
-//
-//    // Drawing white stroke over the filled triangle
-////    Colour whiteColour(255, 255, 255);
-////    drawTriangle(window, triangle, whiteColour);
-//}
-
 void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour) {
     if (triangle.v0().y > triangle.v1().y) std::swap(triangle.v0(), triangle.v1());
     if (triangle.v0().y > triangle.v2().y) std::swap(triangle.v0(), triangle.v2());
@@ -276,7 +210,6 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
 
 
 
-
 // keypress
 void handleEvent(SDL_Event event, DrawingWindow &window) {
     float translationSpeed = 0.1f; //
@@ -386,8 +319,6 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         window.saveBMP("output.bmp");
     }
 }
-
-
 
 
 
