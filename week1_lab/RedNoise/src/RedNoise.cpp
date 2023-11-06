@@ -10,6 +10,7 @@
 #include <TextureMap.h>
 #include <ModelTriangle.h>
 #include <unordered_map>
+#include <RayTriangleIntersection.h>
 #define WIDTH 320
 #define HEIGHT 240
 // Global camera position and rotation angles
@@ -442,6 +443,88 @@ void lookAt(const glm::vec3 &point) {
 
 }
 
+RayTriangleIntersection getClosestIntersection(const glm::vec3 &rayDirection, const std::vector<ModelTriangle> &triangles) {
+    RayTriangleIntersection closestIntersection;
+    float closestDistance = std::numeric_limits<float>::max();
+
+    for (size_t i = 0; i < triangles.size(); i++) {
+        const auto &triangle = triangles[i];
+        glm::vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
+        glm::vec3 e1 = triangle.vertices[2] - triangle.vertices[0];
+        glm::vec3 SPVector = cameraPosition - triangle.vertices[0];
+        glm::mat3 DEMatrix(-rayDirection, e0, e1);
+        glm::vec3 possibleSolution = glm::inverse(DEMatrix) * SPVector;
+
+        float t = possibleSolution.x, u = possibleSolution.y, v = possibleSolution.z;
+        if (t > 0 && u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0 && (u + v) <= 1.0) {
+            if (t < closestDistance) {
+                closestDistance = t;
+                glm::vec3 intersectionPoint = cameraPosition + t * rayDirection;
+                closestIntersection = RayTriangleIntersection(intersectionPoint, t, triangle, i);
+            }
+        }
+    }
+
+    if (closestDistance == std::numeric_limits<float>::max()) {
+        // No valid intersection found, setting distance to -1 to indicate this
+        closestIntersection.distanceFromCamera = -1;
+    }
+
+    return closestIntersection;
+}
+
+glm::vec3 getRayDirection(int pixelX, int pixelY) {
+    float focalLength = 1.5f;
+    // Convert canvas coordinates back to camera space
+    float ndcX = (pixelX - WIDTH / 2.0f) / IMAGE_PLANE_SCALING;
+    float ndcY = ( HEIGHT / 2.0f - pixelY) / IMAGE_PLANE_SCALING;
+
+    // Generate a point on the image plane in camera space
+    glm::vec3 imagePlanePoint = glm::vec3(ndcX, ndcY, -focalLength);
+
+    // Transform the point by the camera orientation to get the direction in world space
+    glm::vec3 rayDirection = cameraOrientation * imagePlanePoint;
+
+    // Normalize the direction
+    rayDirection = glm::normalize(rayDirection);
+
+    return rayDirection;
+}
+
+void drawRayTracedScene(DrawingWindow &window) {
+    float focalLength = 1.5f;
+    float scale = 0.35f; // Assuming this is the scaling factor for the object
+    std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
+            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj",
+            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl",
+            scale
+    );
+
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            // Convert pixel position to a direction vector in 3D space
+            float normalizedX = (x - (WIDTH / 2.0f)) / (WIDTH / 2.0f);
+            float normalizedY = ((HEIGHT / 2.0f) - y) / (HEIGHT / 2.0f);
+
+            glm::vec3 rayDirection = getRayDirection(x, y);
+
+            // Use the getClosestIntersection function to find the closest triangle intersection
+            RayTriangleIntersection intersection = getClosestIntersection(rayDirection, modelTriangles);
+
+            // If a valid intersection is found, color the pixel with the color of the triangle
+            if (intersection.distanceFromCamera >= 0) {
+                Colour color = intersection.intersectedTriangle.colour;
+                uint32_t colourPacked = (255 << 24) + (color.red << 16) + (color.green << 8) + color.blue;
+                window.setPixelColour(x, y, colourPacked);
+            }
+            // If no valid intersection is found, the pixel remains black (or you can set it to a background color)
+        }
+    }
+    window.renderFrame();  // Update the window with the ray-traced image
+}
+
+
+
 void draw(DrawingWindow &window) {
     window.clearPixels();
     if (isOrbiting) {
@@ -500,7 +583,7 @@ int main(int argc, char *argv[]) {
     while (true) {
         // We MUST poll for events - otherwise the window will freeze!
         if (window.pollForInputEvents(event)) handleEvent(event, window);
-        draw(window);
+        drawRayTracedScene(window);
         // Need to render the frame at the end, or nothing actually gets shown on the screen!
         window.renderFrame();
     }
