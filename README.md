@@ -2,7 +2,11 @@
 
 The following is what I'm done in CG2023:
 
-(the README of CG2023 is updating...... )
+(the README of CG2023 is updating...... )  
+  
+The procedure for week6:  
+Ray Tracing the Scene:  
+![RayTracingtheScene.png](photos%2FRayTracingtheScene.png)
 
 The procedure for week5:  
 Translations:
