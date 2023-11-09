@@ -16,11 +16,19 @@
 // Global camera position and rotation angles
 glm::vec3 cameraPosition(0.0, 0.0, 4.0);
 glm::mat3 cameraOrientation = glm::mat3(1.0f);  // identity matrix
+glm::vec3 lightPosition = glm::vec3(0.0f, 0.8f, 0.0f);  // Replace x, y, and z with the actual coordinates
 float orbitAngle = 0.0f;
 bool isOrbiting = false;
 
-//std::vector<std::vector<float>> depthBuffer(WIDTH, std::vector<float>(HEIGHT, 0.0f));
 std::vector<std::vector<double>> depthBuffer(WIDTH, std::vector<double>(HEIGHT, 0.0));
+
+enum class RenderMode {
+    Wireframe,
+    Rasterisation,
+    RayTracing
+};
+
+RenderMode currentMode = RenderMode::Rasterisation;
 
 // Line Drawing using Bresenham's algorithm:
 // here, we have window, start and end point, and color of the line.
@@ -302,6 +310,16 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
             isOrbiting = !isOrbiting;
         }
 
+        else if (event.key.keysym.sym == SDLK_1) { // Switch to wireframe mode
+            currentMode = RenderMode::Wireframe;
+            std::cout << "Switched to wireframe mode." << std::endl;
+        } else if (event.key.keysym.sym == SDLK_2) { // Switch to rasterisation mode
+            currentMode = RenderMode::Rasterisation;
+            std::cout << "Switched to rasterisation mode." << std::endl;
+        } else if (event.key.keysym.sym == SDLK_3) { // Switch to ray tracing mode
+            currentMode = RenderMode::RayTracing;
+            std::cout << "Switched to ray tracing mode." << std::endl;
+        }
 
 //        else if (event.key.keysym.sym == SDLK_u) {
 //            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
@@ -443,21 +461,21 @@ void lookAt(const glm::vec3 &point) {
 
 }
 
-RayTriangleIntersection getClosestIntersection(const glm::vec3 &rayDirection, const std::vector<ModelTriangle> &triangles) {
+RayTriangleIntersection getClosestIntersection(const glm::vec3 &rayDirection, const std::vector<ModelTriangle> &triangles, const glm::vec3 &rayOrigin, float maxDistance = std::numeric_limits<float>::max()) {
     RayTriangleIntersection closestIntersection;
-    float closestDistance = std::numeric_limits<float>::max();
+    float closestDistance = maxDistance; // Set closestDistance to maxDistance initially
 
     for (size_t i = 0; i < triangles.size(); i++) {
         const auto &triangle = triangles[i];
         glm::vec3 e0 = triangle.vertices[1] - triangle.vertices[0];
         glm::vec3 e1 = triangle.vertices[2] - triangle.vertices[0];
-        glm::vec3 SPVector = cameraPosition - triangle.vertices[0];
+        glm::vec3 SPVector = rayOrigin - triangle.vertices[0]; // Use rayOrigin instead of cameraPosition
         glm::mat3 DEMatrix(-rayDirection, e0, e1);
         glm::vec3 possibleSolution = glm::inverse(DEMatrix) * SPVector;
 
         float t = possibleSolution.x, u = possibleSolution.y, v = possibleSolution.z;
         if (t > 0 && u >= 0.0 && u <= 1.0 && v >= 0.0 && v <= 1.0 && (u + v) <= 1.0) {
-            if (t < closestDistance) {
+            if (t < closestDistance) { // This condition ensures we're also checking against maxDistance
                 closestDistance = t;
                 glm::vec3 intersectionPoint = cameraPosition + t * rayDirection;
                 closestIntersection = RayTriangleIntersection(intersectionPoint, t, triangle, i);
@@ -465,8 +483,7 @@ RayTriangleIntersection getClosestIntersection(const glm::vec3 &rayDirection, co
         }
     }
 
-    if (closestDistance == std::numeric_limits<float>::max()) {
-        // No valid intersection found, setting distance to -1 to indicate this
+    if (closestDistance == maxDistance) { // Change this to check if no intersection was found
         closestIntersection.distanceFromCamera = -1;
     }
 
@@ -491,6 +508,20 @@ glm::vec3 getRayDirection(int pixelX, int pixelY) {
     return rayDirection;
 }
 
+bool isPointInShadow(const glm::vec3 &point, const glm::vec3 &lightPosition, const std::vector<ModelTriangle> &triangles, float bias = 0.001f) {
+    glm::vec3 toLight = lightPosition - point;
+    float distanceToLight = glm::length(toLight);
+    glm::vec3 shadowRayDirection = glm::normalize(toLight);
+
+    // Start the shadow ray slightly above the surface to avoid self-intersection
+    glm::vec3 shadowRayOrigin = point + bias * shadowRayDirection;
+
+    // Pass the offset origin and reduced distance to light (minus bias) to account for the new starting point
+    RayTriangleIntersection shadowIntersection = getClosestIntersection(shadowRayDirection, triangles, shadowRayOrigin, distanceToLight - bias);
+    return shadowIntersection.distanceFromCamera > 0 && shadowIntersection.distanceFromCamera < distanceToLight - bias;
+}
+
+
 void drawRayTracedScene(DrawingWindow &window) {
     float focalLength = 1.5f;
     float scale = 0.35f; // Assuming this is the scaling factor for the object
@@ -503,17 +534,20 @@ void drawRayTracedScene(DrawingWindow &window) {
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             // Convert pixel position to a direction vector in 3D space
-            float normalizedX = (x - (WIDTH / 2.0f)) / (WIDTH / 2.0f);
-            float normalizedY = ((HEIGHT / 2.0f) - y) / (HEIGHT / 2.0f);
 
             glm::vec3 rayDirection = getRayDirection(x, y);
 
             // Use the getClosestIntersection function to find the closest triangle intersection
-            RayTriangleIntersection intersection = getClosestIntersection(rayDirection, modelTriangles);
+            RayTriangleIntersection intersection = getClosestIntersection(rayDirection, modelTriangles, cameraPosition);
 
             // If a valid intersection is found, color the pixel with the color of the triangle
             if (intersection.distanceFromCamera >= 0) {
-                Colour color = intersection.intersectedTriangle.colour;
+                // Check if the intersection is in shadow
+                bool inShadow = isPointInShadow(intersection.intersectionPoint, lightPosition, modelTriangles);
+
+                // If the point is in shadow, we set the color to black
+                Colour color = inShadow ? Colour(0, 0, 0) : intersection.intersectedTriangle.colour;
+
                 uint32_t colourPacked = (255 << 24) + (color.red << 16) + (color.green << 8) + color.blue;
                 window.setPixelColour(x, y, colourPacked);
             }
@@ -525,7 +559,7 @@ void drawRayTracedScene(DrawingWindow &window) {
 
 
 
-void draw(DrawingWindow &window) {
+void drawRasterisedScene(DrawingWindow &window) {
     window.clearPixels();
     if (isOrbiting) {
         orbitAngle += 0.005f; // Adjust this value to control the speed of the orbit
@@ -535,7 +569,7 @@ void draw(DrawingWindow &window) {
                 -sin(orbitAngle), 0.0f, cos(orbitAngle)
         );
 
-        // Choose a suitable distance from the center of the Cornell Box (adjust as needed)
+        // Choose a suitable distance from the center of the Cornell Box
         glm::vec3 initialCameraPosition(0.0f, 0.0f, 4.0f);
         cameraPosition = rotationMatrix * initialCameraPosition;
         lookAt(glm::vec3(0.0f, 0.0f, 0.0f));
@@ -553,7 +587,10 @@ void draw(DrawingWindow &window) {
 //    glm::vec3 cameraPosition(0, 0, 4.0);
     float focalLength = 1.5;
 
-    std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials("/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj", "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl", 0.35);
+    std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
+            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj",
+            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl",
+            0.35);
 //    std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
 
 //    Colour white(255, 255, 255); // For wireframe
@@ -575,15 +612,57 @@ void draw(DrawingWindow &window) {
     }
 }
 
+void drawWireframeScene(DrawingWindow &window) {
+    window.clearPixels(); // Clear the window before drawing the new frame
+    Colour wireframeColour(255, 255, 255); // White colour for wireframe
+
+    std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
+            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj",
+            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl",
+            0.35f // Adjust scale as needed
+    );
+
+    for (const ModelTriangle &triangle : modelTriangles) {
+        CanvasPoint v0 = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[0], 1.5);
+        CanvasPoint v1 = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[1], 1.5);
+        CanvasPoint v2 = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[2], 1.5);
+
+        v0.y = HEIGHT - v0.y;
+        v1.y = HEIGHT - v1.y;
+        v2.y = HEIGHT - v2.y;
+
+        drawLine(window, v0, v1, wireframeColour); // Draw line between v0 and v1
+        drawLine(window, v1, v2, wireframeColour); // Draw line between v1 and v2
+        drawLine(window, v2, v0, wireframeColour); // Draw line between v2 and v0
+    }
+
+    window.renderFrame(); // Update the window with the wireframe image
+}
+
 
 
 int main(int argc, char *argv[]) {
     DrawingWindow window = DrawingWindow(WIDTH, HEIGHT, false);
     SDL_Event event;
+
+
     while (true) {
         // We MUST poll for events - otherwise the window will freeze!
         if (window.pollForInputEvents(event)) handleEvent(event, window);
-        drawRayTracedScene(window);
+        for (int x = 0; x < WIDTH; x++)
+            for (int y = 0; y < HEIGHT; y++)
+                depthBuffer[x][y] = 0.0;
+        switch (currentMode) {
+            case RenderMode::Wireframe:
+                drawWireframeScene(window);
+                break;
+            case RenderMode::Rasterisation:
+                drawRasterisedScene(window);
+                break;
+            case RenderMode::RayTracing:
+                drawRayTracedScene(window);
+                break;
+        }
         // Need to render the frame at the end, or nothing actually gets shown on the screen!
         window.renderFrame();
     }
