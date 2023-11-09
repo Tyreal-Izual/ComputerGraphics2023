@@ -6,7 +6,11 @@ The following is what I'm done in CG2023:
   
 The procedure for week6:  
 Ray Tracing the Scene:  
-![RayTracingtheScene.png](photos%2FRayTracingtheScene.png)
+![RayTracingtheScene.png](photos%2FRayTracingtheScene.png)  
+Shadow:  
+![shadow.png](photos%2Fshadow.png)  
+Changing:  
+![Final.gif](photos%2FFinal.gif)
 
 The procedure for week5:  
 Translations:
