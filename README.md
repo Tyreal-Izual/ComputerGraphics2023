@@ -4,6 +4,19 @@ The following is what I'm done in CG2023:
 
 (the README of CG2023 is updating...... )  
   
+The procedure for week7:  
+The following is 3 different light position of the object:  
+(0,0.5,0):  
+![(0,0.5,0).png](photos%2F%280%2C0.5%2C0%29.png)  
+(0,0.5,0.5):  
+![(0,0.5,0.5).png](photos%2F%280%2C0.5%2C0.5%29.png)  
+(0,0.8,0):  
+![(0,0.8,0).png](photos%2F%280%2C0.8%2C0%29.png)  
+Movable light source (it is slow due to slow rendering after each move):  
+![ezgif.com-video-to-gif.gif](photos%2Fezgif.com-video-to-gif.gif)
+Task2-3  
+![Task2.png](photos%2FTask2.png)  
+
 The procedure for week6:  
 Ray Tracing the Scene:  
 ![RayTracingtheScene.png](photos%2FRayTracingtheScene.png)  
