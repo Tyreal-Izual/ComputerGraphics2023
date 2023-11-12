@@ -319,7 +319,18 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
         } else if (event.key.keysym.sym == SDLK_3) { // Switch to ray tracing mode
             currentMode = RenderMode::RayTracing;
             std::cout << "Switched to ray tracing mode." << std::endl;
+        } else if (event.key.keysym.sym == SDLK_5) {
+            lightPosition.y += 0.1f;  // Move light up
+        } else if(event.key.keysym.sym == SDLK_6){
+            lightPosition.y -= 0.1f;  // Move light down
+
+        } else if(event.key.keysym.sym == SDLK_7){
+            lightPosition.x -= 0.1f;  // Move light left
+
+        } else if(event.key.keysym.sym == SDLK_8){
+            lightPosition.x += 0.1f;  // Move light right
         }
+
 
 //        else if (event.key.keysym.sym == SDLK_u) {
 //            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
