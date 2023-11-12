@@ -408,6 +408,12 @@ std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, 
             currentColour = palette[tokens[1]];
         } else if (tokens[0] == "f") {
             ModelTriangle triangle(vertices[stoi(tokens[1]) - 1], vertices[stoi(tokens[2]) - 1], vertices[stoi(tokens[3]) - 1], currentColour);
+
+            // Calculate the normal for the triangle
+            glm::vec3 edge1 = triangle.vertices[1] - triangle.vertices[0];
+            glm::vec3 edge2 = triangle.vertices[2] - triangle.vertices[0];
+            triangle.normal = glm::normalize(glm::cross(edge1, edge2));
+
             triangles.push_back(triangle);
             if (triangles.size() <= 100) {
 //                std::cout << "Loaded triangle with vertices: \n";
@@ -542,13 +548,18 @@ void drawRayTracedScene(DrawingWindow &window) {
 
             // If a valid intersection is found, color the pixel with the color of the triangle
             if (intersection.distanceFromCamera >= 0) {
-                // Check if the intersection is in shadow
-                bool inShadow = isPointInShadow(intersection.intersectionPoint, lightPosition, modelTriangles);
+                glm::vec3 lightDirection = glm::normalize(lightPosition - intersection.intersectionPoint);
+                float angleOfIncidence = glm::dot(intersection.intersectedTriangle.normal, lightDirection);
+                angleOfIncidence = glm::clamp(angleOfIncidence, 0.0f, 1.0f);  // Clamp between 0 and 1
 
-                // If the point is in shadow, we set the color to black
-                Colour color = inShadow ? Colour(0, 0, 0) : intersection.intersectedTriangle.colour;
+                Colour color = intersection.intersectedTriangle.colour;
+                // Multiply color components by the angle of incidence
+                color.red = glm::clamp(color.red * angleOfIncidence, 0.0f, 255.0f);
+                color.green = glm::clamp(color.green * angleOfIncidence, 0.0f, 255.0f);
+                color.blue = glm::clamp(color.blue * angleOfIncidence, 0.0f, 255.0f);
 
-                uint32_t colourPacked = (255 << 24) + (color.red << 16) + (color.green << 8) + color.blue;
+                uint32_t colourPacked = (255 << 24) + (static_cast<int>(color.red) << 16) +
+                                        (static_cast<int>(color.green) << 8) + static_cast<int>(color.blue);
                 window.setPixelColour(x, y, colourPacked);
             }
             // If no valid intersection is found, the pixel remains black (or you can set it to a background color)
