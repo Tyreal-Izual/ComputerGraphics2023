@@ -16,7 +16,7 @@
 // Global camera position and rotation angles
 glm::vec3 cameraPosition(0.0, 0.0, 4.0);
 glm::mat3 cameraOrientation = glm::mat3(1.0f);  // identity matrix
-glm::vec3 lightPosition = glm::vec3(0.0f, 0.8f, 0.0f);  // Replace x, y, and z with the actual coordinates
+glm::vec3 lightPosition = glm::vec3(0.0f, 0.5f, 0.5f);  // Replace x, y, and z with the actual coordinates
 float orbitAngle = 0.0f;
 bool isOrbiting = false;
 
@@ -530,6 +530,11 @@ bool isPointInShadow(const glm::vec3 &point, const glm::vec3 &lightPosition, con
 
 void drawRayTracedScene(DrawingWindow &window) {
     float focalLength = 1.5f;
+
+    float ambientLightLevel = 0.5f;  // This is the minimum light level (20% in this case)
+//    float ambientIntensity = 0.1f;
+//    float lightIntensity = 1.0f; // Adjust for overall light intensity
+
     float scale = 0.35f; // Assuming this is the scaling factor for the object
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
             "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj",
@@ -549,19 +554,40 @@ void drawRayTracedScene(DrawingWindow &window) {
             // If a valid intersection is found, color the pixel with the color of the triangle
             if (intersection.distanceFromCamera >= 0) {
                 glm::vec3 lightDirection = glm::normalize(lightPosition - intersection.intersectionPoint);
+                glm::vec3 viewDirection = glm::normalize(cameraPosition - intersection.intersectionPoint);
+                // Check if the intersection is in shadow
+                bool inShadow = isPointInShadow(intersection.intersectionPoint, lightPosition, modelTriangles);
+
+                // Diffuse (Angle-of-Incidence) Lighting
                 float angleOfIncidence = glm::dot(intersection.intersectedTriangle.normal, lightDirection);
                 angleOfIncidence = glm::clamp(angleOfIncidence, 0.0f, 1.0f);  // Clamp between 0 and 1
 
+                // Specular Lighting
+                glm::vec3 reflectionVector = glm::reflect(-lightDirection, intersection.intersectedTriangle.normal);
+                float specularCoefficient = pow(glm::max(glm::dot(reflectionVector, viewDirection), 0.0f), 256);
+
+
+
                 Colour color = intersection.intersectedTriangle.colour;
-                // Multiply color components by the angle of incidence
-                color.red = glm::clamp(color.red * angleOfIncidence, 0.0f, 255.0f);
-                color.green = glm::clamp(color.green * angleOfIncidence, 0.0f, 255.0f);
-                color.blue = glm::clamp(color.blue * angleOfIncidence, 0.0f, 255.0f);
+
+                if (!inShadow) {
+                    // Apply diffuse, specular, and ambient lighting
+                    float totalLighting = glm::max(angleOfIncidence + specularCoefficient, ambientLightLevel);
+                    color.red = glm::clamp(color.red * totalLighting, 0.0f, 255.0f);
+                    color.green = glm::clamp(color.green * totalLighting, 0.0f, 255.0f);
+                    color.blue = glm::clamp(color.blue * totalLighting, 0.0f, 255.0f);
+                } else {
+                    // Apply ambient lighting in shadow
+                    color.red = glm::clamp(color.red * ambientLightLevel, 0.0f, 255.0f);
+                    color.green = glm::clamp(color.green * ambientLightLevel, 0.0f, 255.0f);
+                    color.blue = glm::clamp(color.blue * ambientLightLevel, 0.0f, 255.0f);
+                }
 
                 uint32_t colourPacked = (255 << 24) + (static_cast<int>(color.red) << 16) +
                                         (static_cast<int>(color.green) << 8) + static_cast<int>(color.blue);
                 window.setPixelColour(x, y, colourPacked);
             }
+            //
             // If no valid intersection is found, the pixel remains black (or you can set it to a background color)
         }
     }
