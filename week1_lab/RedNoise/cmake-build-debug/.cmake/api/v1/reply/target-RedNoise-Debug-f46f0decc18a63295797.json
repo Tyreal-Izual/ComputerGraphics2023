@@ -125,7 +125,7 @@
 			[
 				{
 					"backtrace" : 6,
-					"path" : "/opt/homebrew/Cellar/sdl2/2.28.4/include"
+					"path" : "/opt/homebrew/Cellar/sdl2/2.28.5/include"
 				},
 				{
 					"backtrace" : 6,
@@ -138,7 +138,7 @@
 				{
 					"backtrace" : 6,
 					"isSystem" : true,
-					"path" : "/opt/homebrew/Cellar/sdl2/2.28.4/include/SDL2"
+					"path" : "/opt/homebrew/Cellar/sdl2/2.28.5/include/SDL2"
 				}
 			],
 			"language" : "CXX",
@@ -180,11 +180,11 @@
 			},
 			{
 				"backtrace" : 2,
-				"fragment" : "-L/opt/homebrew/Cellar/sdl2/2.28.4/lib",
+				"fragment" : "-L/opt/homebrew/Cellar/sdl2/2.28.5/lib",
 				"role" : "libraryPath"
 			},
 			{
-				"fragment" : "-Wl,-rpath,/opt/homebrew/Cellar/sdl2/2.28.4/lib",
+				"fragment" : "-Wl,-rpath,/opt/homebrew/Cellar/sdl2/2.28.5/lib",
 				"role" : "libraries"
 			},
 			{
@@ -194,7 +194,7 @@
 			},
 			{
 				"backtrace" : 2,
-				"fragment" : "/opt/homebrew/Cellar/sdl2/2.28.4/lib/libSDL2.dylib",
+				"fragment" : "/opt/homebrew/Cellar/sdl2/2.28.5/lib/libSDL2.dylib",
 				"role" : "libraries"
 			}
 		],

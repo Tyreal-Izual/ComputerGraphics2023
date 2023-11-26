@@ -548,8 +548,8 @@ void drawRayTracedScene(DrawingWindow &window) {
 
     float scale = 0.35f; // Assuming this is the scaling factor for the object
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
-            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj",
-            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl",
+            "./cornell-box.obj",
+            "./cornell-box.mtl",
             scale
     );
 

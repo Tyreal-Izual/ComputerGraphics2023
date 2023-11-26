@@ -24,10 +24,10 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
-					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.4/include"/>
+					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.5/include"/>
 					<Add directory="/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/glm-0.9.7.2"/>
 					<Add directory="/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw"/>
-					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.4/include/SDL2"/>
+					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.5/include/SDL2"/>
 					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/15.0.0/include"/>
 					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
 					<Add directory="/System/Library/Frameworks"/>
@@ -47,10 +47,10 @@
 				<Option type="1"/>
 				<Option compiler="gcc"/>
 				<Compiler>
-					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.4/include"/>
+					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.5/include"/>
 					<Add directory="/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/glm-0.9.7.2"/>
 					<Add directory="/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw"/>
-					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.4/include/SDL2"/>
+					<Add directory="/opt/homebrew/Cellar/sdl2/2.28.5/include/SDL2"/>
 					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/15.0.0/include"/>
 					<Add directory="/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include"/>
 					<Add directory="/System/Library/Frameworks"/>
