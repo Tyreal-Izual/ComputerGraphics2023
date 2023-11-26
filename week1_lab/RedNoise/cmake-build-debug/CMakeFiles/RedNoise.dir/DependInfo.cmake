@@ -8,16 +8,16 @@ set(CMAKE_DEPENDS_LANGUAGES
 
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/CanvasPoint.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasPoint.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasPoint.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/CanvasTriangle.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasTriangle.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasTriangle.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/Colour.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/Colour.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/Colour.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/DrawingWindow.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/DrawingWindow.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/DrawingWindow.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/ModelTriangle.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/ModelTriangle.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/ModelTriangle.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/RayTriangleIntersection.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/RayTriangleIntersection.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/RayTriangleIntersection.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/TextureMap.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/TextureMap.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/TextureMap.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/TexturePoint.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/TexturePoint.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/TexturePoint.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/Utils.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/Utils.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/Utils.cpp.o.d"
-  "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/src/RedNoise.cpp" "CMakeFiles/RedNoise.dir/src/RedNoise.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/src/RedNoise.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/CanvasPoint.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasPoint.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasPoint.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/CanvasTriangle.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasTriangle.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/CanvasTriangle.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/Colour.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/Colour.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/Colour.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/DrawingWindow.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/DrawingWindow.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/DrawingWindow.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/ModelTriangle.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/ModelTriangle.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/ModelTriangle.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/RayTriangleIntersection.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/RayTriangleIntersection.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/RayTriangleIntersection.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/TextureMap.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/TextureMap.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/TextureMap.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/TexturePoint.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/TexturePoint.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/TexturePoint.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/libs/sdw/Utils.cpp" "CMakeFiles/RedNoise.dir/libs/sdw/Utils.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/libs/sdw/Utils.cpp.o.d"
+  "/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/src/RedNoise.cpp" "CMakeFiles/RedNoise.dir/src/RedNoise.cpp.o" "gcc" "CMakeFiles/RedNoise.dir/src/RedNoise.cpp.o.d"
   )
 
 # Targets to which this target links which contain Fortran sources.

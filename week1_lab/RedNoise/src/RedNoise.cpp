@@ -11,6 +11,7 @@
 #include <ModelTriangle.h>
 #include <unordered_map>
 #include <RayTriangleIntersection.h>
+#include <algorithm>
 #define WIDTH 320
 #define HEIGHT 240
 // Global camera position and rotation angles
@@ -548,8 +549,8 @@ void drawRayTracedScene(DrawingWindow &window) {
 
     float scale = 0.35f; // Assuming this is the scaling factor for the object
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
-            "./cornell-box.obj",
-            "./cornell-box.mtl",
+            "../cornell-box.obj",
+            "../cornell-box.mtl",
             scale
     );
 
@@ -636,8 +637,8 @@ void drawRasterisedScene(DrawingWindow &window) {
     float focalLength = 1.5;
 
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
-            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj",
-            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl",
+            "../cornell-box.obj",
+            "../cornell-box.mtl",
             0.35);
 //    std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
 
@@ -665,8 +666,8 @@ void drawWireframeScene(DrawingWindow &window) {
     Colour wireframeColour(255, 255, 255); // White colour for wireframe
 
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
-            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.obj",
-            "/Users/frederick_zou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cornell-box.mtl",
+            "../cornell-box.obj",
+            "../cornell-box.mtl",
             0.35f // Adjust scale as needed
     );
 
