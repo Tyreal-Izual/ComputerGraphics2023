@@ -387,7 +387,6 @@ std::unordered_map<std::string, Colour> loadMaterials(const std::string& filenam
 }
 
 
-// Assuming utils.cpp provides the split function
 std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, const std::string& mtlFilename, float scale) {
     std::unordered_map<std::string, Colour> palette = loadMaterials(mtlFilename);
     std::vector<ModelTriangle> triangles;
@@ -409,13 +408,6 @@ std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, 
         if (tokens[0] == "v") {
             glm::vec3 vertex(stof(tokens[1])* scale , stof(tokens[2])* scale , stof(tokens[3])* scale );
             vertices.push_back(vertex);
-            // Print out the first 5 vertices for checking
-            if (vertices.size() <= 100) {
-//                std::cout << std::setprecision(10) << "Loaded vertex: (" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")" << std::endl;
-//                std::cout << std::setprecision(10) << "Loaded vertex: (" << (stof(tokens[1])* scale , stof(tokens[2])* scale , stof(tokens[3])* scale ) << ")" << std::endl;
-//                std::cout << std::setprecision(10) << "vertex: (" << vertex.x <<"," << vertex.y << ","<< vertex.z << ")" << std::endl;
-
-            }
         } else if (tokens[0] == "usemtl") {
             currentColour = palette[tokens[1]];
         } else if (tokens[0] == "f") {
@@ -427,17 +419,49 @@ std::vector<ModelTriangle> loadOBJWithMaterials(const std::string& objFilename, 
             triangle.normal = glm::normalize(glm::cross(edge1, edge2));
 
             triangles.push_back(triangle);
-            if (triangles.size() <= 100) {
-//                std::cout << "Loaded triangle with vertices: \n";
-                for (const auto& vertex : triangle.vertices) {
-//                    std::cout << "\t(" << tokens[1] << ", " << tokens[2] << ", " << tokens[3] << ")\n";
-                }}
         }
     }
 
     objFile.close();
     return triangles;
 }
+
+std::vector<ModelTriangle> loadSphereOBJ(const std::string& objFilename, float scale) {
+    std::vector<ModelTriangle> triangles;
+    std::ifstream objFile(objFilename);
+
+    if (!objFile.is_open()) {
+        std::cerr << "Failed to open geometry file: " << objFilename << std::endl;
+        return triangles;
+    }
+
+    std::vector<glm::vec3> vertices;
+    Colour sphereColour(255, 0, 0); // Red color for the sphere
+
+    std::string line;
+    while (getline(objFile, line)) {
+        std::vector<std::string> tokens = split(line, ' ');
+        if (tokens.empty()) continue;
+
+        if (tokens[0] == "v") {
+            glm::vec3 vertex(stof(tokens[1]) * scale, stof(tokens[2]) * scale, stof(tokens[3]) * scale);
+            vertices.push_back(vertex);
+        } else if (tokens[0] == "f") {
+            ModelTriangle triangle(vertices[stoi(tokens[1]) - 1], vertices[stoi(tokens[2]) - 1], vertices[stoi(tokens[3]) - 1], sphereColour);
+
+            // Calculate the normal for the triangle
+            glm::vec3 edge1 = triangle.vertices[1] - triangle.vertices[0];
+            glm::vec3 edge2 = triangle.vertices[2] - triangle.vertices[0];
+            triangle.normal = glm::normalize(glm::cross(edge1, edge2));
+
+            triangles.push_back(triangle);
+        }
+    }
+
+    objFile.close();
+    return triangles;
+}
+
 
 const float IMAGE_PLANE_SCALING = 240.0f;  // The scaling factor
 
@@ -549,10 +573,16 @@ void drawRayTracedScene(DrawingWindow &window) {
 
     float scale = 0.35f; // Assuming this is the scaling factor for the object
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
-            "../cornell-box.obj",
-            "../cornell-box.mtl",
+            "cornell-box.obj",
+            "cornell-box.mtl",
             scale
     );
+    std::vector<ModelTriangle> sphereTriangles = loadSphereOBJ("sphere.obj", 0.35f);
+
+    // Combine both sets of triangles
+    std::vector<ModelTriangle> allTriangles;
+    allTriangles.insert(allTriangles.end(), modelTriangles.begin(), modelTriangles.end());
+    allTriangles.insert(allTriangles.end(), sphereTriangles.begin(), sphereTriangles.end());
 
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
@@ -561,7 +591,7 @@ void drawRayTracedScene(DrawingWindow &window) {
             glm::vec3 rayDirection = getRayDirection(x, y);
 
             // Use the getClosestIntersection function to find the closest triangle intersection
-            RayTriangleIntersection intersection = getClosestIntersection(rayDirection, modelTriangles, cameraPosition);
+            RayTriangleIntersection intersection = getClosestIntersection(rayDirection, allTriangles, cameraPosition);
 
             // If a valid intersection is found, color the pixel with the color of the triangle
             if (intersection.distanceFromCamera >= 0) {
@@ -637,14 +667,20 @@ void drawRasterisedScene(DrawingWindow &window) {
     float focalLength = 1.5;
 
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
-            "../cornell-box.obj",
-            "../cornell-box.mtl",
+            "cornell-box.obj",
+            "cornell-box.mtl",
             0.35);
 //    std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
 
+    std::vector<ModelTriangle> sphereTriangles = loadSphereOBJ("sphere.obj", 0.35f);
+    // Combine both sets of triangles
+    std::vector<ModelTriangle> allTriangles;
+    allTriangles.insert(allTriangles.end(), modelTriangles.begin(), modelTriangles.end());
+    allTriangles.insert(allTriangles.end(), sphereTriangles.begin(), sphereTriangles.end());
+
 //    Colour white(255, 255, 255); // For wireframe
 
-    for (const ModelTriangle &modelTriangle : modelTriangles) {
+    for (const ModelTriangle &modelTriangle : allTriangles) {
 
         CanvasPoint v0 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[0], focalLength);
         CanvasPoint v1 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[1], focalLength);
@@ -666,12 +702,17 @@ void drawWireframeScene(DrawingWindow &window) {
     Colour wireframeColour(255, 255, 255); // White colour for wireframe
 
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
-            "../cornell-box.obj",
-            "../cornell-box.mtl",
+            "cornell-box.obj",
+            "cornell-box.mtl",
             0.35f // Adjust scale as needed
     );
+    std::vector<ModelTriangle> sphereTriangles = loadSphereOBJ("sphere.obj", 0.35f);
+    // Combine both sets of triangles
+    std::vector<ModelTriangle> allTriangles;
+    allTriangles.insert(allTriangles.end(), modelTriangles.begin(), modelTriangles.end());
+    allTriangles.insert(allTriangles.end(), sphereTriangles.begin(), sphereTriangles.end());
 
-    for (const ModelTriangle &triangle : modelTriangles) {
+    for (const ModelTriangle &triangle : allTriangles) {
         CanvasPoint v0 = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[0], 1.5);
         CanvasPoint v1 = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[1], 1.5);
         CanvasPoint v2 = getCanvasIntersectionPoint(cameraPosition, triangle.vertices[2], 1.5);
