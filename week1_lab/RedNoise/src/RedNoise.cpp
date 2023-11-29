@@ -570,6 +570,35 @@ bool isPointInShadow(const glm::vec3 &point, const std::vector<glm::vec3> &light
     return static_cast<float>(shadowCount) / lightPositions.size() > 0.5f;  // Adjust the threshold as needed
 }
 
+TextureMap environmentMap("environment map.ppm");
+
+glm::vec2 mapDirectionToUV(const glm::vec3 &direction) {
+    // Convert direction vector into spherical coordinates
+    float theta = atan2(direction.z, direction.x);
+    float phi = acos(direction.y / glm::length(direction));
+
+    // Map spherical coordinates to UV space
+    float u = (theta + M_PI) / (2.0f * M_PI);
+    float v = phi / M_PI;
+
+    return glm::vec2(u, v);
+}
+
+
+Colour sampleEnvironmentMap(const glm::vec2 &uv, const TextureMap &environmentMap) {
+    // Convert UV coordinates to pixel coordinates
+    int x = static_cast<int>(uv.x * (environmentMap.width - 1));
+    int y = static_cast<int>((1.0f - uv.y) * (environmentMap.height - 1)); // Invert v-coordinate if necessary
+
+    // Fetch the pixel color
+    uint32_t pixel = environmentMap.pixels[y * environmentMap.width + x];
+    int red = (pixel >> 16) & 0xFF;
+    int green = (pixel >> 8) & 0xFF;
+    int blue = pixel & 0xFF;
+
+    return Colour(red, green, blue);
+}
+
 
 // prepare for reflections:
 glm::vec3 calculateRefractionDirection(const glm::vec3& normal, const glm::vec3& incident, float indexOfRefraction) {
@@ -631,6 +660,7 @@ bool isRefractive(const Colour& c) {
 
 Colour reflectiveMaterialColor = Colour(0, 0, 255); // Red color for reflective surfaces
 Colour refractiveMaterialColor = Colour(150, 75, 0); // brown color for refractive surfaces
+
 Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const std::vector<ModelTriangle> &triangles, int depth) {
     if (depth <= 0) {
         return Colour(0, 0, 0); // Base case for recursion, return black or background color
@@ -663,6 +693,10 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
 
         // Non-reflective color
         return color;
+    }else {
+        // When no intersection is found, sample the environment map
+        glm::vec2 uv = mapDirectionToUV(rayDirection);
+        return sampleEnvironmentMap(uv, environmentMap);
     }
 
     return Colour(0, 0, 0); // Return black or background color if no intersection
@@ -713,9 +747,9 @@ void drawRayTracedScene(DrawingWindow &window) {
         for (int x = 0; x < WIDTH; x++) {
             glm::vec3 rayDirection = getRayDirection(x, y);
             RayTriangleIntersection intersection = getClosestIntersection(rayDirection, allTriangles, cameraPosition);
+            Colour color;
 
             if (intersection.distanceFromCamera >= 0) {
-                Colour color;
 
                 // Check if the surface is reflective
                 if (isColorEqual(intersection.intersectedTriangle.colour, reflectiveMaterialColor)) {
@@ -758,10 +792,15 @@ void drawRayTracedScene(DrawingWindow &window) {
                     }
                 }
 
-                uint32_t colourPacked = (255 << 24) + (static_cast<int>(color.red) << 16) +
-                                        (static_cast<int>(color.green) << 8) + static_cast<int>(color.blue);
-                window.setPixelColour(x, y, colourPacked);
+
+            } else {
+                // When no intersection is found, sample the environment map
+                glm::vec2 uv = mapDirectionToUV(rayDirection);
+                color = sampleEnvironmentMap(uv, environmentMap);
             }
+            uint32_t colourPacked = (255 << 24) + (static_cast<int>(color.red) << 16) +
+                                     (static_cast<int>(color.green) << 8) + static_cast<int>(color.blue);
+            window.setPixelColour(x, y, colourPacked);
         }
     }
 
