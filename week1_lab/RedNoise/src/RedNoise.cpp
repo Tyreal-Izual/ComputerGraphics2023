@@ -12,12 +12,13 @@
 #include <unordered_map>
 #include <RayTriangleIntersection.h>
 #include <algorithm>
+#include <random>
 #define WIDTH 320
 #define HEIGHT 240
 // Global camera position and rotation angles
 glm::vec3 cameraPosition(0.0, 0.0, 4.0);
 glm::mat3 cameraOrientation = glm::mat3(1.0f);  // identity matrix
-glm::vec3 lightPosition = glm::vec3(0.0f, 0.5f, 0.5f);  // Replace x, y, and z with the actual coordinates
+glm::vec3 lightPosition = glm::vec3(0.0f, 0.5f, 0.5f);  // x, y, and z with the actual coordinates
 float orbitAngle = 0.0f;
 bool isOrbiting = false;
 
@@ -211,7 +212,7 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
             if (texturePixelIndex >= 0 && texturePixelIndex < texture.width * texture.height) {
                 uint32_t texel = texture.pixels[texturePixelIndex];
 
-                // Draw the texel onto the canvas (replace with your actual drawing method).
+                // Draw the texel onto the canvas.
                 window.setPixelColour(x, y, texel);
             }
         }
@@ -477,7 +478,7 @@ CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const gl
     glm::vec3 direction = cameraOrientation * (vertexPosition - cameraPosition);
     float xi = direction.x;
     float yi = direction.y;
-    float zi = -direction.z;  // We assume the camera looks into the negative Z direction
+    float zi = -direction.z;
 
     float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2;
     float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2;
@@ -602,22 +603,30 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
 void drawRayTracedScene(DrawingWindow &window) {
     float focalLength = 1.5f;
 
-    float ambientLightLevel = 0.5f;  // This is the minimum light level (20% in this case)
+    float ambientLightLevel = 0.5f;  // This is the minimum light level (50% in this case)
 //    float ambientIntensity = 0.1f;
 //    float lightIntensity = 1.0f; // Adjust for overall light intensity
+
     std::vector<glm::vec3> lightPositions;
     float offset = 0.3f;  // This is the distance between each light point
     int maxDepth = 3; // Maximum recursion depth for reflections
+    // Jittered sampling for area lights
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
+    const float jitterAmount = 0.05f; // Adjust this value for more or less jitter
 
-// Generate light positions in a 3x3 grid around the base position
     for (int i = -1; i <= 1; ++i) {
         for (int j = -1; j <= 1; ++j) {
-            glm::vec3 lightPoint = lightPosition + glm::vec3(i * offset, 0.0f, j * offset);
-            lightPositions.push_back(lightPoint);
+            // Generate jittered offsets
+            float jitterX = distribution(generator) * jitterAmount;
+            float jitterZ = distribution(generator) * jitterAmount;
+
+            glm::vec3 jitteredLightPoint = lightPosition + glm::vec3(i * offset + jitterX, 0.0f, j * offset + jitterZ);
+            lightPositions.push_back(jitteredLightPoint);
         }
     }
 
-    float scale = 0.35f; // Assuming this is the scaling factor for the object
+    float scale = 0.35f; // this is the scaling factor for the object
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
             "cornell-box.obj",
             "cornell-box.mtl",
@@ -728,8 +737,6 @@ void drawRasterisedScene(DrawingWindow &window) {
         CanvasPoint v1 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[1], focalLength);
         CanvasPoint v2 = getCanvasIntersectionPoint(cameraPosition, modelTriangle.vertices[2], focalLength);
 
-        // Scale, flip, etc. if needed (similar to what you did for individual vertices)
-        // Here's the flip as an example:
         v0.y = HEIGHT - v0.y;
         v1.y = HEIGHT - v1.y;
         v2.y = HEIGHT - v2.y;

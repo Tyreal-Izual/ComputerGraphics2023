@@ -4,6 +4,17 @@ The following is what I'm done in CG2023:
 
 (the README of CG2023 is updating...... )  
   
+Improvement and new feature for CW:  
+Smooth and elegant soft shadow (Area Lights with Jittered Sampling)  
+![Smooth and elegant soft shadows.png](photos%2FSmooth%20and%20elegant%20soft%20shadows.png)  
+Rough attempt at soft shadow with multipoint light sources (area light)  
+![Rough attempt at soft shadows (multi-point light sources).png](photos%2FRough%20attempt%20at%20soft%20shadows%20%28multi-point%20light%20sources%29.png)  
+Reflective materials for Blue Rectangle:  
+![Reflective materials.png](photos%2FReflective%20materials.png)  
+Add sphere to the rendering window:  
+![sphere.png](photos%2Fsphere.png)  
+
+
 The procedure for week7:  
 The following is 3 different light position of the object:  
 (0,0.5,0):  
