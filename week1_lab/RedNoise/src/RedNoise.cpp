@@ -437,7 +437,7 @@ std::vector<ModelTriangle> loadSphereOBJ(const std::string& objFilename, float s
     }
 
     std::vector<glm::vec3> vertices;
-    Colour sphereColour(255, 0, 0); // Red color for the sphere
+    Colour sphereColour(150, 75, 0); // brown color for the sphere
 
     std::string line;
     while (getline(objFile, line)) {
@@ -570,12 +570,67 @@ bool isPointInShadow(const glm::vec3 &point, const std::vector<glm::vec3> &light
     return static_cast<float>(shadowCount) / lightPositions.size() > 0.5f;  // Adjust the threshold as needed
 }
 
-// Helper function to check if two colors are equal
+
+// prepare for reflections:
+glm::vec3 calculateRefractionDirection(const glm::vec3& normal, const glm::vec3& incident, float indexOfRefraction) {
+    float cosi = glm::clamp(-1.0f, 1.0f, glm::dot(incident, normal));
+    float etai = 1, etat = indexOfRefraction;
+    glm::vec3 n = normal;
+    if (cosi < 0) {
+        cosi = -cosi;
+    } else {
+        std::swap(etai, etat);
+        n = -normal;
+    }
+    float eta = etai / etat;
+    float k = 1 - eta * eta * (1 - cosi * cosi);
+    return k < 0 ? glm::vec3(0.0f) : eta * incident + (eta * cosi - sqrtf(k)) * n;
+}
+
+float calculateFresnelEffect(const glm::vec3& incident, const glm::vec3& normal, float indexOfRefraction) {
+    float cosi = glm::clamp(-1.0f, 1.0f, glm::dot(incident, normal));
+    float etai = 1, etat = indexOfRefraction;
+    if (cosi > 0) { std::swap(etai, etat); }
+    // Compute sini using Snell's law
+    float sint = etai / etat * sqrtf(std::max(0.f, 1 - cosi * cosi));
+    // Total internal reflection
+    if (sint >= 1) {
+        return 1;
+    } else {
+        float cost = sqrtf(std::max(0.f, 1 - sint * sint));
+        cosi = fabsf(cosi);
+        float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
+        float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
+        return (Rs * Rs + Rp * Rp) / 2;
+    }
+}
+
+Colour mix(const Colour& c1, const Colour& c2, float factor) {
+    return Colour(
+            c1.red * (1 - factor) + c2.red * factor,
+            c1.green * (1 - factor) + c2.green * factor,
+            c1.blue * (1 - factor) + c2.blue * factor
+    );
+}
+
+
+// Helper refraction to check if two colors are equal
 bool isColorEqual(const Colour& c1, const Colour& c2) {
     return c1.red == c2.red && c1.green == c2.green && c1.blue == c2.blue;
 }
+// Check if the material is reflective
+bool isReflective(const Colour& c) {
+    return c.red == 0 && c.green == 0 && c.blue == 255; // Blue color for reflective surfaces
+}
+
+
+// Check if the material is refractive
+bool isRefractive(const Colour& c) {
+    return c.red == 150 && c.green == 75 && c.blue == 0; // Red color for refractive surfaces
+}
 
 Colour reflectiveMaterialColor = Colour(0, 0, 255); // Red color for reflective surfaces
+Colour refractiveMaterialColor = Colour(150, 75, 0); // brown color for refractive surfaces
 Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const std::vector<ModelTriangle> &triangles, int depth) {
     if (depth <= 0) {
         return Colour(0, 0, 0); // Base case for recursion, return black or background color
@@ -585,11 +640,25 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
     if (intersection.distanceFromCamera >= 0) {
         Colour color = intersection.intersectedTriangle.colour;
 
-        if (isColorEqual(color , reflectiveMaterialColor)) { // Check for reflective surface
+        if (isReflective(color)) {
+            // Handle reflective surface (mirror)
             glm::vec3 reflectedDirection = glm::reflect(rayDirection, intersection.intersectedTriangle.normal);
-            glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f; // Slight offset to avoid self-intersection
+            glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f;
             Colour reflectedColor = traceRay(reflectedRayOrigin, reflectedDirection, triangles, depth - 1);
-            return reflectedColor; // Reflective color
+            return reflectedColor;
+        } else if (isRefractive(color)) {
+            // Handle refractive surface (glass)
+            float indexOfRefraction = 1.5f; // Index of refraction for glass, adjust as needed
+            glm::vec3 refractedDirection = calculateRefractionDirection(intersection.intersectedTriangle.normal, rayDirection, indexOfRefraction);
+            glm::vec3 refractedRayOrigin = intersection.intersectionPoint + refractedDirection * 0.001f;
+            Colour refractedColor = traceRay(refractedRayOrigin, refractedDirection, triangles, depth - 1);
+
+            glm::vec3 reflectedDirection = glm::reflect(rayDirection, intersection.intersectedTriangle.normal);
+            glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f;
+            Colour reflectedColor = traceRay(reflectedRayOrigin, reflectedDirection, triangles, depth - 1);
+
+            float fresnelEffect = calculateFresnelEffect(rayDirection, intersection.intersectedTriangle.normal, indexOfRefraction);
+            return mix(reflectedColor, refractedColor, fresnelEffect);
         }
 
         // Non-reflective color
@@ -606,6 +675,7 @@ void drawRayTracedScene(DrawingWindow &window) {
     float ambientLightLevel = 0.5f;  // This is the minimum light level (50% in this case)
 //    float ambientIntensity = 0.1f;
 //    float lightIntensity = 1.0f; // Adjust for overall light intensity
+    float indexOfRefraction = 1.5f; // Index of refraction for glass, adjust as needed
 
     std::vector<glm::vec3> lightPositions;
     float offset = 0.3f;  // This is the distance between each light point
@@ -652,7 +722,18 @@ void drawRayTracedScene(DrawingWindow &window) {
                     glm::vec3 reflectedDirection = glm::reflect(rayDirection, intersection.intersectedTriangle.normal);
                     glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f; // Slight offset to avoid self-intersection
                     color = traceRay(reflectedRayOrigin, reflectedDirection, allTriangles, maxDepth);
-                } else {
+                }else if (isColorEqual(intersection.intersectedTriangle.colour, refractiveMaterialColor)) {
+                    glm::vec3 refractedDirection = calculateRefractionDirection(intersection.intersectedTriangle.normal, rayDirection, indexOfRefraction);
+                    glm::vec3 refractedRayOrigin = intersection.intersectionPoint + refractedDirection * 0.001f;
+                    Colour refractedColor = traceRay(refractedRayOrigin, refractedDirection, allTriangles, maxDepth);
+
+                    glm::vec3 reflectedDirection = glm::reflect(rayDirection, intersection.intersectedTriangle.normal);
+                    glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f;
+                    Colour reflectedColor = traceRay(reflectedRayOrigin, reflectedDirection, allTriangles, maxDepth);
+
+                    float fresnelEffect = calculateFresnelEffect(rayDirection, intersection.intersectedTriangle.normal, indexOfRefraction);
+                    color = mix(reflectedColor, refractedColor, fresnelEffect);
+                }  else {
                     // Non-reflective surface lighting calculations
                     glm::vec3 lightDirection = glm::normalize(lightPosition - intersection.intersectionPoint);
                     glm::vec3 viewDirection = glm::normalize(cameraPosition - intersection.intersectionPoint);
