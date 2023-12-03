@@ -551,6 +551,38 @@ glm::vec3 getRayDirection(int pixelX, int pixelY) {
     return rayDirection;
 }
 
+float calculateShadowContribution(float shadowDistance, float lightDistance) {
+    // Example calculation; adjust based on your scene and preferences
+    float softnessFactor = 0.5f; // Adjust this for softer/harder shadow edges
+    return glm::smoothstep(0.0f, lightDistance * softnessFactor, shadowDistance);
+}
+
+float calculateShadowIntensity(const glm::vec3 &point, const std::vector<glm::vec3> &lightPositions, const std::vector<ModelTriangle> &triangles, float bias = 0.001f) {
+    float shadowIntensity = 0.0f;
+
+    for (const auto& lightPosition : lightPositions) {
+        glm::vec3 toLight = lightPosition - point;
+        float distanceToLight = glm::length(toLight);
+        glm::vec3 shadowRayDirection = glm::normalize(toLight);
+
+        glm::vec3 shadowRayOrigin = point + bias * shadowRayDirection;
+        RayTriangleIntersection shadowIntersection = getClosestIntersection(shadowRayDirection, triangles, shadowRayOrigin, distanceToLight - bias);
+
+        if (shadowIntersection.distanceFromCamera > 0 && shadowIntersection.distanceFromCamera < distanceToLight - bias) {
+            // Soft shadow calculation: scale shadow contribution by some factor (e.g., distance)
+            shadowIntensity += calculateShadowContribution(shadowIntersection.distanceFromCamera, distanceToLight);
+        } else {
+            shadowIntensity += 1.0f; // Full light contribution if not in shadow
+        }
+    }
+
+    shadowIntensity /= static_cast<float>(lightPositions.size());
+    return glm::clamp(shadowIntensity, 0.0f, 1.0f);
+}
+
+
+
+
 bool isPointInShadow(const glm::vec3 &point, const std::vector<glm::vec3> &lightPositions, const std::vector<ModelTriangle> &triangles, float bias = 0.001f) {
     int shadowCount = 0;
     for (const auto& lightPosition : lightPositions) {
@@ -602,8 +634,10 @@ Colour sampleEnvironmentMap(const glm::vec2 &uv, const TextureMap &environmentMa
 
 // prepare for reflections:
 glm::vec3 calculateRefractionDirection(const glm::vec3& normal, const glm::vec3& incident, float indexOfRefraction) {
-    float cosi = glm::clamp(-1.0f, 1.0f, glm::dot(incident, normal));
-    float etai = 1, etat = indexOfRefraction;
+    float cosi = glm::clamp(glm::dot(incident, normal), -1.0f, 1.0f);
+    float etai = 1.0f; // Refractive index of air
+    float etat = indexOfRefraction; // Refractive index of the material
+
     glm::vec3 n = normal;
     if (cosi < 0) {
         cosi = -cosi;
@@ -611,28 +645,30 @@ glm::vec3 calculateRefractionDirection(const glm::vec3& normal, const glm::vec3&
         std::swap(etai, etat);
         n = -normal;
     }
+
     float eta = etai / etat;
     float k = 1 - eta * eta * (1 - cosi * cosi);
     return k < 0 ? glm::vec3(0.0f) : eta * incident + (eta * cosi - sqrtf(k)) * n;
 }
 
+
 float calculateFresnelEffect(const glm::vec3& incident, const glm::vec3& normal, float indexOfRefraction) {
-    float cosi = glm::clamp(-1.0f, 1.0f, glm::dot(incident, normal));
-    float etai = 1, etat = indexOfRefraction;
+    float cosi = glm::clamp(glm::dot(incident, normal), -1.0f, 1.0f);
+    float etai = 1.0f, etat = indexOfRefraction;
     if (cosi > 0) { std::swap(etai, etat); }
-    // Compute sini using Snell's law
-    float sint = etai / etat * sqrtf(std::max(0.f, 1 - cosi * cosi));
-    // Total internal reflection
-    if (sint >= 1) {
-        return 1;
-    } else {
-        float cost = sqrtf(std::max(0.f, 1 - sint * sint));
-        cosi = fabsf(cosi);
-        float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
-        float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
-        return (Rs * Rs + Rp * Rp) / 2;
+
+    float sint = etai / etat * sqrtf(std::max(0.0f, 1.0f - cosi * cosi));
+    if (sint >= 1.0) {
+        return 1.0f; // Total internal reflection
     }
+
+    float cost = sqrtf(std::max(0.0f, 1.0f - sint * sint));
+    cosi = fabsf(cosi);
+    float Rs = ((etat * cosi) - (etai * cost)) / ((etat * cosi) + (etai * cost));
+    float Rp = ((etai * cosi) - (etat * cost)) / ((etai * cosi) + (etat * cost));
+    return (Rs * Rs + Rp * Rp) / 2;
 }
+
 
 Colour mix(const Colour& c1, const Colour& c2, float factor) {
     return Colour(
@@ -657,6 +693,28 @@ bool isReflective(const Colour& c) {
 bool isRefractive(const Colour& c) {
     return c.red == 150 && c.green == 75 && c.blue == 0; // Red color for refractive surfaces
 }
+//
+//bool isDiffuse(const Colour &colour) {
+//    // Example heuristic: a material is considered diffuse if it's not purely reflective or refractive
+//    return !(isReflective(colour) || isRefractive(colour));
+//}
+//
+//glm::vec3 randomInHemisphere(const glm::vec3 &normal) {
+//    std::random_device rd;
+//    std::mt19937 gen(rd());
+//    std::uniform_real_distribution<> dis(0, 1);
+//
+//    glm::vec3 inUnitSphere;
+//    do {
+//        inUnitSphere = 2.0f * glm::vec3(dis(gen), dis(gen), dis(gen)) - glm::vec3(1, 1, 1);
+//    } while (glm::dot(inUnitSphere, inUnitSphere) >= 1.0f);
+//
+//    if (glm::dot(inUnitSphere, normal) > 0.0f)
+//        return inUnitSphere;
+//    else
+//        return -inUnitSphere;
+//}
+
 
 Colour reflectiveMaterialColor = Colour(0, 0, 255); // Red color for reflective surfaces
 Colour refractiveMaterialColor = Colour(150, 75, 0); // brown color for refractive surfaces
@@ -689,11 +747,20 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
 
             float fresnelEffect = calculateFresnelEffect(rayDirection, intersection.intersectedTriangle.normal, indexOfRefraction);
             return mix(reflectedColor, refractedColor, fresnelEffect);
+//        } else if (isDiffuse(color)) {
+//            // Handle diffuse surface (indirect lighting)
+//            glm::vec3 bounceDirection = randomInHemisphere(intersection.intersectedTriangle.normal);
+//            glm::vec3 bounceRayOrigin = intersection.intersectionPoint + 0.001f * bounceDirection;
+//            Colour indirectColor = traceRay(bounceRayOrigin, bounceDirection, triangles, depth - 1);
+//
+//            // Mix direct color (from material) and indirect color (from bounce)
+//            float mixRatio = 0.5; // Adjust this ratio as needed
+//            return mix(color, indirectColor, mixRatio);
         }
 
-        // Non-reflective color
+        // Direct color for non-reflective, non-refractive, and non-diffuse materials
         return color;
-    }else {
+    } else {
         // When no intersection is found, sample the environment map
         glm::vec2 uv = mapDirectionToUV(rayDirection);
         return sampleEnvironmentMap(uv, environmentMap);
@@ -701,6 +768,7 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
 
     return Colour(0, 0, 0); // Return black or background color if no intersection
 }
+
 
 
 void drawRayTracedScene(DrawingWindow &window) {
@@ -769,9 +837,10 @@ void drawRayTracedScene(DrawingWindow &window) {
                     color = mix(reflectedColor, refractedColor, fresnelEffect);
                 }  else {
                     // Non-reflective surface lighting calculations
+                    float shadowIntensity = calculateShadowIntensity(intersection.intersectionPoint, lightPositions, allTriangles);
+
                     glm::vec3 lightDirection = glm::normalize(lightPosition - intersection.intersectionPoint);
                     glm::vec3 viewDirection = glm::normalize(cameraPosition - intersection.intersectionPoint);
-                    bool inShadow = isPointInShadow(intersection.intersectionPoint, lightPositions, modelTriangles);
 
                     float angleOfIncidence = glm::dot(intersection.intersectedTriangle.normal, lightDirection);
                     angleOfIncidence = glm::clamp(angleOfIncidence, 0.0f, 1.0f);
@@ -780,16 +849,11 @@ void drawRayTracedScene(DrawingWindow &window) {
                     float specularCoefficient = pow(glm::max(glm::dot(reflectionVector, viewDirection), 0.0f), 256);
 
                     color = intersection.intersectedTriangle.colour;
-                    if (!inShadow) {
-                        float totalLighting = glm::max(angleOfIncidence + specularCoefficient, ambientLightLevel);
-                        color.red = glm::clamp(color.red * totalLighting, 0.0f, 255.0f);
-                        color.green = glm::clamp(color.green * totalLighting, 0.0f, 255.0f);
-                        color.blue = glm::clamp(color.blue * totalLighting, 0.0f, 255.0f);
-                    } else {
-                        color.red = glm::clamp(color.red * ambientLightLevel, 0.0f, 255.0f);
-                        color.green = glm::clamp(color.green * ambientLightLevel, 0.0f, 255.0f);
-                        color.blue = glm::clamp(color.blue * ambientLightLevel, 0.0f, 255.0f);
-                    }
+                    float totalLighting = glm::max(angleOfIncidence + specularCoefficient, ambientLightLevel) * shadowIntensity;
+
+                    color.red = glm::clamp(color.red * totalLighting, 0.0f, 255.0f);
+                    color.green = glm::clamp(color.green * totalLighting, 0.0f, 255.0f);
+                    color.blue = glm::clamp(color.blue * totalLighting, 0.0f, 255.0f);
                 }
 
 
