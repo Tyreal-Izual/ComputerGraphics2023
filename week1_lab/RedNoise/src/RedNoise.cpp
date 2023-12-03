@@ -825,16 +825,21 @@ void drawRayTracedScene(DrawingWindow &window) {
                     glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f; // Slight offset to avoid self-intersection
                     color = traceRay(reflectedRayOrigin, reflectedDirection, allTriangles, maxDepth);
                 }else if (isColorEqual(intersection.intersectedTriangle.colour, refractiveMaterialColor)) {
+                    // Calculate refractive direction
                     glm::vec3 refractedDirection = calculateRefractionDirection(intersection.intersectedTriangle.normal, rayDirection, indexOfRefraction);
                     glm::vec3 refractedRayOrigin = intersection.intersectionPoint + refractedDirection * 0.001f;
                     Colour refractedColor = traceRay(refractedRayOrigin, refractedDirection, allTriangles, maxDepth);
 
+                    // Calculate reflected direction
                     glm::vec3 reflectedDirection = glm::reflect(rayDirection, intersection.intersectedTriangle.normal);
                     glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f;
                     Colour reflectedColor = traceRay(reflectedRayOrigin, reflectedDirection, allTriangles, maxDepth);
 
+                    // Calculate Fresnel effect
                     float fresnelEffect = calculateFresnelEffect(rayDirection, intersection.intersectedTriangle.normal, indexOfRefraction);
-                    color = mix(reflectedColor, refractedColor, fresnelEffect);
+
+                    // Combine reflected and refracted colors based on Fresnel effect
+                    color = mix(refractedColor, reflectedColor, fresnelEffect);
                 }  else {
                     // Non-reflective surface lighting calculations
                     float shadowIntensity = calculateShadowIntensity(intersection.intersectionPoint, lightPositions, allTriangles);

@@ -1,10 +1,16 @@
 # ComputerGraphics2023
 
-The following is what I'm done in CG2023:
+## The following is what I'm done in CG2023:
 
 (the README of CG2023 is updating...... )  
   
-Improvement and new feature for CW:  
+### Improvement and new feature for CW:
+Improve soft shadow to make sure it's really soft and as well for the sphere:  
+![soft shadow.png](photos%2Fsoft%20shadow.png)  
+Environment map:  
+![environment.png](photos%2Fenvironment.png)  
+Add refractive material to sphere:  
+![refractive.png](photos%2Frefractive.png)  
 Smooth and elegant soft shadow (Area Lights with Jittered Sampling)  
 ![Smooth and elegant soft shadows.png](photos%2FSmooth%20and%20elegant%20soft%20shadows.png)  
 Rough attempt at soft shadow with multipoint light sources (area light)  
@@ -15,7 +21,7 @@ Add sphere to the rendering window:
 ![sphere.png](photos%2Fsphere.png)  
 
 
-The procedure for week7:  
+### The procedure for week7:  
 The following is 3 different light position of the object:  
 (0,0.5,0):  
 ![(0,0.5,0).png](photos%2F%280%2C0.5%2C0%29.png)  
@@ -28,7 +34,7 @@ Movable light source (it is slow due to slow rendering after each move):
 Task2-3  
 ![Task2.png](photos%2FTask2.png)  
 
-The procedure for week6:  
+### The procedure for week6:  
 Ray Tracing the Scene:  
 ![RayTracingtheScene.png](photos%2FRayTracingtheScene.png)  
 Shadow:  
@@ -36,7 +42,7 @@ Shadow:
 Changing:  
 ![Final.gif](photos%2FFinal.gif)
 
-The procedure for week5:  
+### The procedure for week5:  
 Translations:
 ![translation.gif](photos%2Ftranslation.gif)  
 Look up/down, right/left:  
@@ -46,7 +52,7 @@ Rotation:
 Front of the object:  
 ![front.png](photos%2Ffront.png)  
 
-The procedure for week4:  
+### The procedure for week4:  
 Starting of the week4, stuck at task6(showing 'stars' but not same one as given).  
 So i decided to connect the stars as the line first, and found the problem:  
 ![week4,1.JPG](photos%2Fweek4%2C1.JPG)  
@@ -62,7 +68,7 @@ Starting of depth process:
 Final view :)   
 ![week4,7.jpeg](photos%2Fweek4%2C7.jpeg)  
 
-The procedure for week3 Task 5-6 as following:  
+### The procedure for week3 Task 5-6 as following:  
 ![1.JPG](photos%2F1.JPG)  
 ![2.JPG](photos%2F2.JPG)  
 ![3.jpeg](photos%2F3.jpeg)  
