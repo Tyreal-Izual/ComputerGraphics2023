@@ -30,7 +30,7 @@ enum class RenderMode {
     RayTracing
 };
 
-RenderMode currentMode = RenderMode::Rasterisation;
+RenderMode currentMode = RenderMode::Wireframe;
 
 // Line Drawing using Bresenham's algorithm:
 // here, we have window, start and end point, and color of the line.
@@ -83,14 +83,21 @@ void drawLine(DrawingWindow &window, const CanvasPoint &start, const CanvasPoint
 
 
 void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour colour) {
+    // Correctly order the triangle vertices by y-coordinate
+    CanvasPoint temp;
     if (triangle.v0().y > triangle.v1().y) std::swap(triangle.v0(), triangle.v1());
     if (triangle.v0().y > triangle.v2().y) std::swap(triangle.v0(), triangle.v2());
     if (triangle.v1().y > triangle.v2().y) std::swap(triangle.v1(), triangle.v2());
 
-    // Calculate the slopes
-    float slope1 = (triangle.v2().x - triangle.v0().x) / (triangle.v2().y - triangle.v0().y);
-    float slope2 = (triangle.v1().x - triangle.v0().x) / (triangle.v1().y - triangle.v0().y);
-    float slope3 = (triangle.v2().x - triangle.v1().x) / (triangle.v2().y - triangle.v1().y);
+    // Calculate slopes, checking for division by zero
+    float dy1 = triangle.v2().y - triangle.v0().y;
+    float dy2 = triangle.v1().y - triangle.v0().y;
+    float dy3 = triangle.v2().y - triangle.v1().y;
+
+    float slope1 = dy1 == 0 ? 0 : (triangle.v2().x - triangle.v0().x) / dy1;
+    float slope2 = dy2 == 0 ? 0 : (triangle.v1().x - triangle.v0().x) / dy2;
+    float slope3 = dy3 == 0 ? 0 : (triangle.v2().x - triangle.v1().x) / dy3;
+
 
     // Draw upper half of the triangle
     for (float y = std::max(triangle.v0().y, 0.0f); y <= std::min(triangle.v1().y, static_cast<float>(HEIGHT - 1)); y++) {
@@ -133,7 +140,10 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
         CanvasPoint end(round(x2), y, depth2);
         drawLine(window, start, end, colour);
     }
+//    std::cout << "Draw filled triangle" ;
+
 }
+
 
 
 // task 5
@@ -467,13 +477,6 @@ std::vector<ModelTriangle> loadSphereOBJ(const std::string& objFilename, float s
 const float IMAGE_PLANE_SCALING = 240.0f;  // The scaling factor
 
 CanvasPoint getCanvasIntersectionPoint(const glm::vec3 &cameraPosition, const glm::vec3 &vertexPosition, float focalLength) {
-//    float xi = vertexPosition.x - cameraPosition.x;
-//    float yi = vertexPosition.y - cameraPosition.y;
-//    float zi = cameraPosition.z - vertexPosition.z;
-//
-//    float ui = focalLength * (xi / zi) * IMAGE_PLANE_SCALING + WIDTH / 2 ;
-//    float vi = focalLength * (yi / zi) * IMAGE_PLANE_SCALING + HEIGHT / 2 ;
-//    std::cout << "ui,vi point: (" << ui << ", " << vi << ")" << std::endl;
 
     glm::vec3 direction = cameraOrientation * (vertexPosition - cameraPosition);
     float xi = direction.x;
@@ -581,8 +584,6 @@ float calculateShadowIntensity(const glm::vec3 &point, const std::vector<glm::ve
 }
 
 
-
-
 bool isPointInShadow(const glm::vec3 &point, const std::vector<glm::vec3> &lightPositions, const std::vector<ModelTriangle> &triangles, float bias = 0.001f) {
     int shadowCount = 0;
     for (const auto& lightPosition : lightPositions) {
@@ -602,6 +603,75 @@ bool isPointInShadow(const glm::vec3 &point, const std::vector<glm::vec3> &light
     return static_cast<float>(shadowCount) / lightPositions.size() > 0.5f;  // Adjust the threshold as needed
 }
 
+
+struct Photon {
+    glm::vec3 position;
+    glm::vec3 direction;
+    Colour power;
+
+    Photon(const glm::vec3& pos, const glm::vec3& dir, const Colour& pow)
+            : position(pos), direction(dir), power(pow) {}
+};
+
+class PhotonMap {
+    std::vector<Photon> photons;
+
+public:
+    void store(const Photon& photon) {
+        photons.push_back(photon);
+    }
+
+    Colour gatherLight(const glm::vec3& position, const glm::vec3& normal, size_t numPhotons, float radius) const {
+        Colour accumulatedColor(0, 0, 0);
+        size_t found = 0;
+        for (const auto& photon : photons) {
+            if (glm::distance(photon.position, position) < radius) {
+                // Optionally, use the angle between photon direction and normal for weighting
+                accumulatedColor.red += photon.power.red;
+                accumulatedColor.green += photon.power.green;
+                accumulatedColor.blue += photon.power.blue;
+                if (++found >= numPhotons) break;
+            }
+        }
+        if (found > 0) {
+            accumulatedColor.red /= found;
+            accumulatedColor.green /= found;
+            accumulatedColor.blue /= found;
+        }
+        return accumulatedColor;
+    }
+};
+
+
+std::vector<Photon> emitPhotons(int numPhotons, const glm::vec3& lightPosition, const Colour& lightColour) {
+    std::vector<Photon> photons;
+    photons.reserve(numPhotons);
+
+    std::default_random_engine generator;
+    std::uniform_real_distribution<float> distribution(0.0, 1.0);
+
+    for (int i = 0; i < numPhotons; ++i) {
+        float theta = acos(sqrt(1.0 - distribution(generator))); // Cosine-weighted distribution
+        float phi = 2.0 * M_PI * distribution(generator);
+
+        glm::vec3 direction(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+
+        Photon photon(lightPosition, direction, lightColour);
+
+
+        photons.push_back(photon);
+    }
+
+    return photons;
+}
+
+
+Colour calculateIndirectIllumination(const glm::vec3& position, const glm::vec3& normal, const PhotonMap& photonMap, float searchRadius, size_t numPhotons) {
+    // Use gatherLight method to calculate indirect illumination
+    return photonMap.gatherLight(position, normal, numPhotons, searchRadius);
+}
+
+
 TextureMap environmentMap("environment map.ppm");
 
 glm::vec2 mapDirectionToUV(const glm::vec3 &direction) {
@@ -618,16 +688,23 @@ glm::vec2 mapDirectionToUV(const glm::vec3 &direction) {
 
 
 Colour sampleEnvironmentMap(const glm::vec2 &uv, const TextureMap &environmentMap) {
+    // Manually clamp UV coordinates between 0 and 1
+    float clampedU = uv.x < 0.0f ? 0.0f : (uv.x > 1.0f ? 1.0f : uv.x);
+    float clampedV = uv.y < 0.0f ? 0.0f : (uv.y > 1.0f ? 1.0f : uv.y);
+
     // Convert UV coordinates to pixel coordinates
-    int x = static_cast<int>(uv.x * (environmentMap.width - 1));
-    int y = static_cast<int>((1.0f - uv.y) * (environmentMap.height - 1)); // Invert v-coordinate if necessary
+    int x = static_cast<int>(clampedU * (environmentMap.width - 1));
+    int y = static_cast<int>((1.0f - clampedV) * (environmentMap.height - 1)); // Invert v-coordinate if necessary
+
+    // Manually ensure x and y are within the bounds of the texture dimensions
+    x = x < 0 ? 0 : (x > environmentMap.width - 1 ? environmentMap.width - 1 : x);
+    y = y < 0 ? 0 : (y > environmentMap.height - 1 ? environmentMap.height - 1 : y);
 
     // Fetch the pixel color
     uint32_t pixel = environmentMap.pixels[y * environmentMap.width + x];
     int red = (pixel >> 16) & 0xFF;
     int green = (pixel >> 8) & 0xFF;
     int blue = pixel & 0xFF;
-
     return Colour(red, green, blue);
 }
 
@@ -691,33 +768,33 @@ bool isReflective(const Colour& c) {
 
 // Check if the material is refractive
 bool isRefractive(const Colour& c) {
-    return c.red == 150 && c.green == 75 && c.blue == 0; // Red color for refractive surfaces
+    return c.red == 255 && c.green == 0 && c.blue == 0; // Red color for refractive surfaces
 }
-//
-//bool isDiffuse(const Colour &colour) {
-//    // Example heuristic: a material is considered diffuse if it's not purely reflective or refractive
-//    return !(isReflective(colour) || isRefractive(colour));
-//}
-//
-//glm::vec3 randomInHemisphere(const glm::vec3 &normal) {
-//    std::random_device rd;
-//    std::mt19937 gen(rd());
-//    std::uniform_real_distribution<> dis(0, 1);
-//
-//    glm::vec3 inUnitSphere;
-//    do {
-//        inUnitSphere = 2.0f * glm::vec3(dis(gen), dis(gen), dis(gen)) - glm::vec3(1, 1, 1);
-//    } while (glm::dot(inUnitSphere, inUnitSphere) >= 1.0f);
-//
-//    if (glm::dot(inUnitSphere, normal) > 0.0f)
-//        return inUnitSphere;
-//    else
-//        return -inUnitSphere;
-//}
+
+bool isDiffuse(const Colour &colour) {
+    // Example heuristic: a material is considered diffuse if it's not purely reflective or refractive
+    return !(isReflective(colour) || isRefractive(colour));
+}
+
+glm::vec3 randomInHemisphere(const glm::vec3 &normal) {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_real_distribution<> dis(0, 1);
+
+    glm::vec3 inUnitSphere;
+    do {
+        inUnitSphere = 2.0f * glm::vec3(dis(gen), dis(gen), dis(gen)) - glm::vec3(1, 1, 1);
+    } while (glm::dot(inUnitSphere, inUnitSphere) >= 1.0f);
+
+    if (glm::dot(inUnitSphere, normal) > 0.0f)
+        return inUnitSphere;
+    else
+        return -inUnitSphere;
+}
 
 
 Colour reflectiveMaterialColor = Colour(0, 0, 255); // Red color for reflective surfaces
-Colour refractiveMaterialColor = Colour(150, 75, 0); // brown color for refractive surfaces
+Colour refractiveMaterialColor = Colour(255, 0, 0); // brown color for refractive surfaces
 
 Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const std::vector<ModelTriangle> &triangles, int depth) {
     if (depth <= 0) {
@@ -726,6 +803,7 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
 
     RayTriangleIntersection intersection = getClosestIntersection(rayDirection, triangles, rayOrigin);
     if (intersection.distanceFromCamera >= 0) {
+
         Colour color = intersection.intersectedTriangle.colour;
 
         if (isReflective(color)) {
@@ -735,27 +813,19 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
             Colour reflectedColor = traceRay(reflectedRayOrigin, reflectedDirection, triangles, depth - 1);
             return reflectedColor;
         } else if (isRefractive(color)) {
-            // Handle refractive surface (glass)
-            float indexOfRefraction = 1.5f; // Index of refraction for glass, adjust as needed
-            glm::vec3 refractedDirection = calculateRefractionDirection(intersection.intersectedTriangle.normal, rayDirection, indexOfRefraction);
-            glm::vec3 refractedRayOrigin = intersection.intersectionPoint + refractedDirection * 0.001f;
-            Colour refractedColor = traceRay(refractedRayOrigin, refractedDirection, triangles, depth - 1);
+            float refractiveIndex = 1.5f; // Example for glass
+            glm::vec3 refractedDirection = calculateRefractionDirection(-intersection.intersectedTriangle.normal, rayDirection, refractiveIndex);
+            glm::vec3 refractedRayOrigin = intersection.intersectionPoint + refractedDirection * 0.001f; // Bias to avoid self-intersection
+            return traceRay(refractedRayOrigin, refractedDirection, triangles, depth - 1);
+        } else if (isDiffuse(color)) {
+            // Handle diffuse surface (indirect lighting)
+            glm::vec3 bounceDirection = randomInHemisphere(intersection.intersectedTriangle.normal);
+            glm::vec3 bounceRayOrigin = intersection.intersectionPoint + 0.001f * bounceDirection;
+            Colour indirectColor = traceRay(bounceRayOrigin, bounceDirection, triangles, depth - 1);
 
-            glm::vec3 reflectedDirection = glm::reflect(rayDirection, intersection.intersectedTriangle.normal);
-            glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f;
-            Colour reflectedColor = traceRay(reflectedRayOrigin, reflectedDirection, triangles, depth - 1);
-
-            float fresnelEffect = calculateFresnelEffect(rayDirection, intersection.intersectedTriangle.normal, indexOfRefraction);
-            return mix(reflectedColor, refractedColor, fresnelEffect);
-//        } else if (isDiffuse(color)) {
-//            // Handle diffuse surface (indirect lighting)
-//            glm::vec3 bounceDirection = randomInHemisphere(intersection.intersectedTriangle.normal);
-//            glm::vec3 bounceRayOrigin = intersection.intersectionPoint + 0.001f * bounceDirection;
-//            Colour indirectColor = traceRay(bounceRayOrigin, bounceDirection, triangles, depth - 1);
-//
-//            // Mix direct color (from material) and indirect color (from bounce)
-//            float mixRatio = 0.5; // Adjust this ratio as needed
-//            return mix(color, indirectColor, mixRatio);
+            // Mix direct color (from material) and indirect color (from bounce)
+            float mixRatio = 0.5; // Adjust this ratio as needed
+            return mix(color, indirectColor, mixRatio);
         }
 
         // Direct color for non-reflective, non-refractive, and non-diffuse materials
@@ -763,12 +833,48 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
     } else {
         // When no intersection is found, sample the environment map
         glm::vec2 uv = mapDirectionToUV(rayDirection);
+
         return sampleEnvironmentMap(uv, environmentMap);
     }
 
     return Colour(0, 0, 0); // Return black or background color if no intersection
 }
 
+Colour combineIllumination(const Colour& direct, const Colour& indirect) {
+    // Cast color components to float before addition and use std::min
+    return Colour(
+            static_cast<int>(std::min(255.0f, static_cast<float>(direct.red) + static_cast<float>(indirect.red))),
+            static_cast<int>(std::min(255.0f, static_cast<float>(direct.green) + static_cast<float>(indirect.green))),
+            static_cast<int>(std::min(255.0f, static_cast<float>(direct.blue) + static_cast<float>(indirect.blue)))
+    );
+}
+
+void tracePhoton(Photon& photon, const std::vector<ModelTriangle>& triangles, PhotonMap& photonMap, int maxBounces) {
+    glm::vec3 currentPhotonPosition = photon.position;
+    glm::vec3 currentPhotonDirection = photon.direction;
+    Colour currentPhotonPower = photon.power;
+
+    for (int bounce = 0; bounce < maxBounces; ++bounce) {
+        RayTriangleIntersection intersection = getClosestIntersection(currentPhotonDirection, triangles, currentPhotonPosition);
+        if (intersection.distanceFromCamera < 0) break; // Photon escapes the scene
+
+        currentPhotonPosition = intersection.intersectionPoint;
+
+        // Store photon at the intersection point
+        photonMap.store(Photon(currentPhotonPosition, currentPhotonDirection, currentPhotonPower));
+
+        // For a diffuse surface, reflect the photon in a random direction
+        if (isDiffuse(intersection.intersectedTriangle.colour)) {
+            currentPhotonDirection = randomInHemisphere(intersection.intersectedTriangle.normal);
+            currentPhotonPosition += currentPhotonDirection * 0.001f; // Offset to prevent self-intersection
+            currentPhotonPower.red = static_cast<int>(currentPhotonPower.red * 0.8f);
+            currentPhotonPower.green = static_cast<int>(currentPhotonPower.green * 0.8f);
+            currentPhotonPower.blue = static_cast<int>(currentPhotonPower.blue * 0.8f);
+        } else {
+            break; // For now, stop tracing when hitting a non-diffuse surface
+        }
+    }
+}
 
 
 void drawRayTracedScene(DrawingWindow &window) {
@@ -779,6 +885,7 @@ void drawRayTracedScene(DrawingWindow &window) {
 //    float lightIntensity = 1.0f; // Adjust for overall light intensity
     float indexOfRefraction = 1.5f; // Index of refraction for glass, adjust as needed
 
+//    lightPosition:
     std::vector<glm::vec3> lightPositions;
     float offset = 0.3f;  // This is the distance between each light point
     int maxDepth = 3; // Maximum recursion depth for reflections
@@ -811,20 +918,42 @@ void drawRayTracedScene(DrawingWindow &window) {
     allTriangles.insert(allTriangles.end(), modelTriangles.begin(), modelTriangles.end());
     allTriangles.insert(allTriangles.end(), sphereTriangles.begin(), sphereTriangles.end());
 
+    // for photon map:
+    PhotonMap photonMap;
+    Colour lightColour = Colour(255, 255, 255); // Example light color
+    const int NUM_PHOTONS = 10000;
+    const int MAX_PHOTON_BOUNCES = 5;
+    const float SEARCH_RADIUS = 0.01f;
+
+    // Emit and trace photons for each light source
+    for (const auto& lightPosition : lightPositions) {
+        std::vector<Photon> emittedPhotons = emitPhotons(NUM_PHOTONS, lightPosition, lightColour);
+        for (auto& photon : emittedPhotons) {
+            tracePhoton(photon, allTriangles, photonMap, MAX_PHOTON_BOUNCES);
+        }
+    }
+
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
             glm::vec3 rayDirection = getRayDirection(x, y);
             RayTriangleIntersection intersection = getClosestIntersection(rayDirection, allTriangles, cameraPosition);
             Colour color;
 
+
             if (intersection.distanceFromCamera >= 0) {
 
                 // Check if the surface is reflective
                 if (isColorEqual(intersection.intersectedTriangle.colour, reflectiveMaterialColor)) {
+
                     glm::vec3 reflectedDirection = glm::reflect(rayDirection, intersection.intersectedTriangle.normal);
-                    glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f; // Slight offset to avoid self-intersection
+
+                    glm::vec3 reflectedRayOrigin = intersection.intersectionPoint + reflectedDirection * 0.001f;
+
                     color = traceRay(reflectedRayOrigin, reflectedDirection, allTriangles, maxDepth);
-                }else if (isColorEqual(intersection.intersectedTriangle.colour, refractiveMaterialColor)) {
+
+
+                } else if (isColorEqual(intersection.intersectedTriangle.colour, refractiveMaterialColor)) {
+
                     // Calculate refractive direction
                     glm::vec3 refractedDirection = calculateRefractionDirection(intersection.intersectedTriangle.normal, rayDirection, indexOfRefraction);
                     glm::vec3 refractedRayOrigin = intersection.intersectionPoint + refractedDirection * 0.001f;
@@ -840,7 +969,9 @@ void drawRayTracedScene(DrawingWindow &window) {
 
                     // Combine reflected and refracted colors based on Fresnel effect
                     color = mix(refractedColor, reflectedColor, fresnelEffect);
-                }  else {
+
+                } else {
+
                     // Non-reflective surface lighting calculations
                     float shadowIntensity = calculateShadowIntensity(intersection.intersectionPoint, lightPositions, allTriangles);
 
@@ -853,29 +984,37 @@ void drawRayTracedScene(DrawingWindow &window) {
                     glm::vec3 reflectionVector = glm::reflect(-lightDirection, intersection.intersectedTriangle.normal);
                     float specularCoefficient = pow(glm::max(glm::dot(reflectionVector, viewDirection), 0.0f), 256);
 
-                    color = intersection.intersectedTriangle.colour;
+                    Colour directColor = intersection.intersectedTriangle.colour;
                     float totalLighting = glm::max(angleOfIncidence + specularCoefficient, ambientLightLevel) * shadowIntensity;
 
-                    color.red = glm::clamp(color.red * totalLighting, 0.0f, 255.0f);
-                    color.green = glm::clamp(color.green * totalLighting, 0.0f, 255.0f);
-                    color.blue = glm::clamp(color.blue * totalLighting, 0.0f, 255.0f);
+                    directColor.red = glm::clamp(directColor.red * totalLighting, 0.0f, 255.0f);
+                    directColor.green = glm::clamp(directColor.green * totalLighting, 0.0f, 255.0f);
+                    directColor.blue = glm::clamp(directColor.blue * totalLighting, 0.0f, 255.0f);
+
+                    // Calculate indirect illumination using the photon map
+                    Colour indirectIllumination = calculateIndirectIllumination(intersection.intersectionPoint, intersection.intersectedTriangle.normal, photonMap, SEARCH_RADIUS, NUM_PHOTONS);
+
+                    // Combine direct and indirect illumination
+                    color = combineIllumination(directColor, indirectIllumination);
+//                    color = directColor;
                 }
 
-
             } else {
+
                 // When no intersection is found, sample the environment map
                 glm::vec2 uv = mapDirectionToUV(rayDirection);
                 color = sampleEnvironmentMap(uv, environmentMap);
             }
-            uint32_t colourPacked = (255 << 24) + (static_cast<int>(color.red) << 16) +
-                                     (static_cast<int>(color.green) << 8) + static_cast<int>(color.blue);
+
+            // Convert color to the format required by the window and set pixel color
+            uint32_t colourPacked = (255 << 24) + (static_cast<int>(color.red) << 16) + (static_cast<int>(color.green) << 8) + static_cast<int>(color.blue);
             window.setPixelColour(x, y, colourPacked);
         }
     }
 
-    window.renderFrame();  // Update the window with the ray-traced image
+    // Render the final frame
+    window.renderFrame();
 }
-
 
 
 void drawRasterisedScene(DrawingWindow &window) {
