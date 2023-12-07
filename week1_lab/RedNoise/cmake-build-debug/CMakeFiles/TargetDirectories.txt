@@ -1,3 +1,0 @@
-/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cmake-build-debug/CMakeFiles/RedNoise.dir
-/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cmake-build-debug/CMakeFiles/rebuild_cache.dir

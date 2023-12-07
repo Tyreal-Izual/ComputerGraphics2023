@@ -26,7 +26,7 @@ This project is a custom 3D rendering engine developed in C++. It supports diffe
   ```bash 
   make clean
   ```  
-  first.
+  first.  
 5. Run the compiled executable.
 
 ## Usage

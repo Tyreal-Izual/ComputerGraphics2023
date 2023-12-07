@@ -1,4 +1,0 @@
-/home/frederickzou/.local/share/JetBrains/Toolbox/apps/clion/bin/cmake/linux/x64/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" -S /home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise -B /home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cmake-build-debug
--- Configuring done (0.0s)
--- Generating done (0.0s)
--- Build files have been written to: /home/frederickzou/Desktop/ComputerGraphics2023/week1_lab/RedNoise/cmake-build-debug
