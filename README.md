@@ -9,6 +9,7 @@ This project is a custom 3D rendering engine developed in C++. It supports diffe
 - **Lighting**: Basic lighting models with support for shadows, reflection and refraction.
 - **Object Loading**: Load 3D objects from `.obj` files with material `.mtl` support.
 - **Photon Mapping**: For advanced lighting in Ray Tracing mode.
+- **For more information, please refer to [What I've Done.md](What%20I%27ve%20Done.md).**
 
 ## Requirements
 - C++ compiler
