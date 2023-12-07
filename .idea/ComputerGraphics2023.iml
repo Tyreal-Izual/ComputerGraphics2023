@@ -201,6 +201,12 @@
       <excludeFolder url="file://$MODULE_DIR$/CMakeFiles" />
       <excludeFolder url="file://$MODULE_DIR$/Cornel Box/CMakeFiles" />
       <excludeFolder url="file://$MODULE_DIR$/Cornel Box/cmake-build-debug" />
+      <excludeFolder url="file://$MODULE_DIR$/CMakeFiles" />
+      <excludeFolder url="file://$MODULE_DIR$/Cornel Box/CMakeFiles" />
+      <excludeFolder url="file://$MODULE_DIR$/Cornel Box/cmake-build-debug" />
+      <excludeFolder url="file://$MODULE_DIR$/CMakeFiles" />
+      <excludeFolder url="file://$MODULE_DIR$/Cornel Box/CMakeFiles" />
+      <excludeFolder url="file://$MODULE_DIR$/Cornel Box/cmake-build-debug" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

@@ -1,3 +1,0 @@
-/Users/frederick_zou/Desktop/ComputerGraphics2023/Cornel Box/cmake-build-debug/CMakeFiles/RedNoise.dir
-/Users/frederick_zou/Desktop/ComputerGraphics2023/Cornel Box/cmake-build-debug/CMakeFiles/edit_cache.dir
-/Users/frederick_zou/Desktop/ComputerGraphics2023/Cornel Box/cmake-build-debug/CMakeFiles/rebuild_cache.dir
