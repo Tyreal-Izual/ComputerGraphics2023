@@ -782,7 +782,7 @@ Colour traceRay(const glm::vec3 &rayOrigin, const glm::vec3 &rayDirection, const
             Colour indirectColor = traceRay(bounceRayOrigin, bounceDirection, triangles, depth - 1);
 
             // Mix direct color (from material) and indirect color (from bounce)
-            float mixRatio = 0.5; // Adjust this ratio as needed
+            float mixRatio = 0.2; // Adjust this ratio as needed
             return mix(color, indirectColor, mixRatio);
         }
 
