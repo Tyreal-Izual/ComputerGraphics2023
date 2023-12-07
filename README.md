@@ -1,10 +1,69 @@
 # ComputerGraphics2023
 
-## The following is what I'm done in CG2023:
+## Overview
+This project is a custom 3D rendering engine developed in C++. It supports different rendering modes including Wireframe, Rasterization, and Ray Tracing. The engine is capable of handling object transformations, camera control, light calculations, and texture mapping.
 
-(the README of CG2023 is updating...... )  
-  
+## Features
+- **Multiple Rendering Modes**: Wireframe, Rasterisation, and Ray Tracing.
+- **Camera Control**: Movement and rotation of the camera in 3D space.
+- **Lighting**: Basic lighting models with support for shadows, reflection and refraction.
+- **Object Loading**: Load 3D objects from `.obj` files with material `.mtl` support.
+- **Photon Mapping**: For advanced lighting in Ray Tracing mode.
+
+## Requirements
+- C++ compiler
+- SDL2 library for creating windows and handling events
+- GLM library for mathematics
+
+## Installation
+1. Ensure you have SDL2 and GLM installed on your system.
+2. Clone the repository to your local machine.
+3. Compile the code using:  
+  ```bash
+  make 
+  ```
+4. You may need to use:  
+  ```bash 
+  make clean
+  ```  
+  first.
+5. Run the compiled executable.
+
+## Usage
+- Run the program. A window will open displaying the rendered scene.
+- Use keyboard inputs to interact with the scene:
+    - Arrow keys for camera movement.
+    - `W` and `S` for moving the camera forward and backward.
+    - `A` and `D` for camera rotation.
+    - Number keys `1`, `2`, `3` to switch between Wireframe, Rasterisation, and Ray Tracing modes.
+    - Other keys for specific actions like light movement and camera tilt.
+- Close the window by `esc`or terminate the program to exit.
+
+## Code Structure
+- `main()`: The entry point of the program. Initializes the window and enters the render loop.
+- Rendering Functions:
+    - `drawWireframeScene()`: Renders the scene in wireframe mode.
+    - `drawRasterisedScene()`: Renders the scene using rasterization.
+    - `drawRayTracedScene()`: Renders the scene using ray tracing.
+- Utility Functions:
+    - `loadOBJWithMaterials()`: Loads a 3D object with materials.
+    - `handleEvent()`: Handles user input events.
+
+
+[//]: # (## License)
+
+[//]: # (This project is licensed under the [MIT License]&#40;LICENSE&#41;.)
+
+
+## The following is what I've done in CG2023:
+
 ### Improvement and new feature for CW:
+Improved version:  
+![improved.png](photos%2Fimproved.png)  
+Applied photon map:  
+![Screenshot 2023-12-05 at 5.32.13 AM.png](photos%2FScreenshot%202023-12-05%20at%205.32.13%E2%80%AFAM.png)  
+Photon map:  
+![photon map.png](photos%2Fphoton%20map.png)  
 Improve soft shadow to make sure it's really soft and as well for the sphere:  
 ![soft shadow.png](photos%2Fsoft%20shadow.png)  
 Environment map:  

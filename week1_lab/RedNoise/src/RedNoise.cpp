@@ -30,7 +30,7 @@ enum class RenderMode {
     RayTracing
 };
 
-RenderMode currentMode = RenderMode::Wireframe;
+RenderMode currentMode = RenderMode::Rasterisation;
 
 // Line Drawing using Bresenham's algorithm:
 // here, we have window, start and end point, and color of the line.
@@ -140,7 +140,6 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
         CanvasPoint end(round(x2), y, depth2);
         drawLine(window, start, end, colour);
     }
-//    std::cout << "Draw filled triangle" ;
 
 }
 
@@ -149,11 +148,6 @@ void drawFilledTriangle(DrawingWindow &window, CanvasTriangle triangle, Colour c
 // task 5
 void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, TextureMap &texture) {
     //  Sort the triangle vertices by their y-values.
-//    printf("Triangle vertices:\n");
-//    printf("V0: (%f, %f), V1: (%f, %f), V2: (%f, %f)\n",
-//           triangle.v0().x, triangle.v0().y,
-//           triangle.v1().x, triangle.v1().y,
-//           triangle.v2().x, triangle.v2().y);
 
     std::vector<CanvasPoint> vertices = {triangle.v0(), triangle.v1(), triangle.v2()};
     std::sort(vertices.begin(), vertices.end(), [](const CanvasPoint &a, const CanvasPoint &b) {
@@ -198,7 +192,6 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
 
         int xFull = top.x + alphaFull * (bot.x - top.x);
         int xPart = flatBottom ? mid.x + alphaPart * (bot.x - mid.x) : top.x + alphaPart * (mid.x - top.x);
-//        printf("y: %d, xFull: %d, xPart: %d\n", y, xFull, xPart);
 
         float texXFull = top.texturePoint.x + alphaFull * (bot.texturePoint.x - top.texturePoint.x);
         float texXPart = flatBottom ? mid.texturePoint.x + alphaPart * (bot.texturePoint.x - mid.texturePoint.x) : top.texturePoint.x + alphaPart * (mid.texturePoint.x - top.texturePoint.x);
@@ -234,8 +227,7 @@ void drawTexturedTriangle(DrawingWindow &window, CanvasTriangle triangle, Textur
 // keypress
 void handleEvent(SDL_Event event, DrawingWindow &window) {
     float translationSpeed = 0.1f; //
-//    float rotationSpeed = glm::radians(5.0f);
-    float rotationSpeed = 0.005f;
+    float rotationSpeed = 0.05f;
 
     if (event.type == SDL_KEYDOWN) {
         if (event.key.keysym.sym == SDLK_LEFT) { // go left
@@ -343,26 +335,11 @@ void handleEvent(SDL_Event event, DrawingWindow &window) {
             lightPosition.x += 0.1f;  // Move light right
         }
 
-
-//        else if (event.key.keysym.sym == SDLK_u) {
-//            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
-//            Colour randomColour = generateRandomColour();
-//            drawTriangle(window, randomTriangle, randomColour);
-//            std::cout << "DRAW TRIANGLE" << std::endl;
-//        }
-//        else if (event.key.keysym.sym == SDLK_f){
-//            CanvasTriangle randomTriangle = generateRandomTriangle(WIDTH, HEIGHT);
-//            Colour randomColour = generateRandomColour();
-//            drawFilledTriangle(window, randomTriangle, randomColour);
-//            std::cout << "DRAW FILLED TRIANGLE" << std::endl;
-//        }
     } else if (event.type == SDL_MOUSEBUTTONDOWN) {
         window.savePPM("output.ppm");
         window.saveBMP("output.bmp");
     }
 }
-
-
 
 
 std::unordered_map<std::string, Colour> loadMaterials(const std::string& filename) {
@@ -495,7 +472,6 @@ void lookAt(const glm::vec3 &point) {
     glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0,1,0), -forward));  // Compute the right direction
     glm::vec3 up = glm::normalize(glm::cross(right, forward));  // Compute the up direction
 
-//    forward.x*=-1;
     // Set the camera orientation
     cameraOrientation[0] = right;
     cameraOrientation[1] = up;
@@ -554,11 +530,13 @@ glm::vec3 getRayDirection(int pixelX, int pixelY) {
     return rayDirection;
 }
 
+
 float calculateShadowContribution(float shadowDistance, float lightDistance) {
     // Example calculation; adjust based on your scene and preferences
     float softnessFactor = 0.5f; // Adjust this for softer/harder shadow edges
     return glm::smoothstep(0.0f, lightDistance * softnessFactor, shadowDistance);
 }
+
 
 float calculateShadowIntensity(const glm::vec3 &point, const std::vector<glm::vec3> &lightPositions, const std::vector<ModelTriangle> &triangles, float bias = 0.001f) {
     float shadowIntensity = 0.0f;
@@ -581,26 +559,6 @@ float calculateShadowIntensity(const glm::vec3 &point, const std::vector<glm::ve
 
     shadowIntensity /= static_cast<float>(lightPositions.size());
     return glm::clamp(shadowIntensity, 0.0f, 1.0f);
-}
-
-
-bool isPointInShadow(const glm::vec3 &point, const std::vector<glm::vec3> &lightPositions, const std::vector<ModelTriangle> &triangles, float bias = 0.001f) {
-    int shadowCount = 0;
-    for (const auto& lightPosition : lightPositions) {
-        glm::vec3 toLight = lightPosition - point;
-        float distanceToLight = glm::length(toLight);
-        glm::vec3 shadowRayDirection = glm::normalize(toLight);
-
-        glm::vec3 shadowRayOrigin = point + bias * shadowRayDirection;
-        RayTriangleIntersection shadowIntersection = getClosestIntersection(shadowRayDirection, triangles, shadowRayOrigin, distanceToLight - bias);
-
-        if (shadowIntersection.distanceFromCamera > 0 && shadowIntersection.distanceFromCamera < distanceToLight - bias) {
-            shadowCount++;
-        }
-    }
-
-    // Average the shadow intensity
-    return static_cast<float>(shadowCount) / lightPositions.size() > 0.5f;  // Adjust the threshold as needed
 }
 
 
@@ -881,14 +839,13 @@ void drawRayTracedScene(DrawingWindow &window) {
     float focalLength = 1.5f;
 
     float ambientLightLevel = 0.5f;  // This is the minimum light level (50% in this case)
-//    float ambientIntensity = 0.1f;
-//    float lightIntensity = 1.0f; // Adjust for overall light intensity
     float indexOfRefraction = 1.5f; // Index of refraction for glass, adjust as needed
 
-//    lightPosition:
+//    Auto lightPositions:
     std::vector<glm::vec3> lightPositions;
     float offset = 0.3f;  // This is the distance between each light point
     int maxDepth = 3; // Maximum recursion depth for reflections
+
     // Jittered sampling for area lights
     std::default_random_engine generator;
     std::uniform_real_distribution<float> distribution(-1.0f, 1.0f);
@@ -1042,14 +999,12 @@ void drawRasterisedScene(DrawingWindow &window) {
         for (int y = 0; y < HEIGHT; y++)
             depthBuffer[x][y] = 0.0f;
 
-//    glm::vec3 cameraPosition(0, 0, 4.0);
     float focalLength = 1.5;
 
     std::vector<ModelTriangle> modelTriangles = loadOBJWithMaterials(
             "cornell-box.obj",
             "cornell-box.mtl",
             0.35);
-//    std::cout << "Number of triangles: " << modelTriangles.size() << std::endl;
 
     std::vector<ModelTriangle> sphereTriangles = loadSphereOBJ("sphere.obj", 0.35f);
     // Combine both sets of triangles
