@@ -135,4 +135,12 @@ Final view :)
 ![4.jpeg](photos%2F4.jpeg)  
 ![5.jpeg](photos%2F5.jpeg)  
 
+## License
 
+This project is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/).
+
+```bash
+ComputerGraphics2023: Cornell box in C++  Copyright (C) 2025  Frederick Zou
+```
+
+See the [LICENSE](./LICENSE) file for full details.
